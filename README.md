@@ -257,6 +257,124 @@ public function __construct(private MailerClient $mailer) {}
 $this->mailer->send()->email([...]);
 ```
 
+The published config also exposes the HTTP resilience knobs (wired into the
+container-bound client automatically) and the mail-transport options:
+
+```dotenv
+MAILER_TIMEOUT=10
+MAILER_RETRIES=2
+MAILER_RETRY_BASE_DELAY=200
+MAILER_RETRY_MAX_DELAY=5000
+MAILER_MAIL_ATTACHMENTS=fail        # fail | ignore
+MAILER_MAIL_IDEMPOTENCY=content     # content | random | off
+```
+
+## Laravel integration — Mail transport
+
+The package registers a `mailer` mail driver, so you can route Laravel's `Mail`
+facade (and notifications, queued mailers, etc.) through the platform `/send`
+API without changing any mailing code.
+
+Point Laravel at it. Add a mailer entry to `config/mail.php`:
+
+```php
+'mailers' => [
+    // ...
+    'mailer' => [
+        'transport' => 'mailer',
+    ],
+],
+```
+
+and select it:
+
+```dotenv
+MAIL_MAILER=mailer
+```
+
+Now every send flows through the API:
+
+```php
+// Plain message
+Mail::raw('Hello world', fn ($m) => $m->to('jane@example.com')->subject('Hi'));
+
+// A Mailable
+Mail::to('jane@example.com')->send(new WelcomeMail($user));
+```
+
+The transport maps the message to a single `/send` call (one recipient) or a
+`/send/batch` call (multiple recipients), reading the subject, HTML body and
+text body off the message.
+
+### Sending with a stored template
+
+To render a platform template by slug instead of inline HTML, set the template
+headers on the underlying Symfony message from your Mailable. The transport then
+sends a template payload (`{to, template, variables}`) and ignores the inline
+subject/body:
+
+```php
+use Mailer\Sdk\Laravel\Mail\MailerHeaders;
+
+class WelcomeMail extends Mailable
+{
+    public function build()
+    {
+        return $this
+            ->subject('Welcome') // ignored when a template header is present
+            ->withSymfonyMessage(function ($message) {
+                $headers = $message->getHeaders();
+                $headers->addTextHeader(MailerHeaders::TEMPLATE, 'welcome');
+                $headers->addTextHeader(
+                    MailerHeaders::VARIABLES,
+                    json_encode(['first_name' => 'Jane']),
+                );
+            });
+    }
+}
+```
+
+### Limitations & behavior
+
+The platform `/send` API is intentionally narrow; the transport adapts to it
+with explicit, documented behavior rather than silent surprises.
+
+- **From / Reply-To are ignored.** The API does not accept `from` or `reply_to`
+  — the platform always uses the project's configured sender (set the project
+  `default_from_email`/`default_from_name` and a verified sending domain in the
+  dashboard). A `From` set on the message is logged at debug level and dropped.
+- **Attachments are not supported.** The `/send` API has no attachment field.
+  By default (`mailer-sdk.mail.attachments = 'fail'`) a message carrying an
+  attachment throws `Mailer\Sdk\Exception\UnsupportedFeatureException`, so the
+  send fails loudly and you fix the Mailable. Set it to `'ignore'` to log a
+  warning and send the message *without* the attachments. Attachments are never
+  dropped silently in `'fail'` mode.
+- **Suppressed recipients are not failures.** When the platform rejects an
+  address as suppressed (`recipient_suppressed`), the transport does **not**
+  throw: it logs a warning and dispatches a
+  `Mailer\Sdk\Laravel\Events\MessageSuppressed` event (carrying the recipient
+  email and reason). In a batch send, each suppressed recipient gets its own
+  event while the rest are delivered. Listen for the event to prune your lists.
+- **Quota / sending-domain rejections are failures.** `quota_exceeded` and
+  `sending_domain_not_verified` (and any other unexpected API error) are
+  re-thrown as a `Symfony\Component\Mailer\Exception\TransportException` with the
+  SDK exception kept as `previous`, so Laravel's mailer/queue treats the send as
+  failed and can retry per your own policy. A batch send throws if any recipient
+  hard-fails, summarizing the failed recipients.
+- **Multiple recipients become a batch.** To + Cc + Bcc are merged into the
+  delivery list; each recipient is sent its own copy via `/send/batch` (the
+  message content is shared, the `to` differs per item).
+- **Idempotency is automatic and retry-safe.** Per send the transport sets an
+  `Idempotency-Key`:
+  - `content` (default): a deterministic hash of the message content, so a
+    requeued job never duplicates the send. Two genuinely identical messages
+    sent within the platform's idempotency window dedup — switch to `random` if
+    that is not what you want.
+  - `random`: a fresh UUID per send attempt (no dedup).
+  - `off`: no key.
+  Override per message with the `X-Mailer-Idempotency-Key`
+  (`MailerHeaders::IDEMPOTENCY_KEY`) header.
+
 ## Error handling
 
 Every non-2xx response is mapped to a typed exception. All exceptions extend
