@@ -7,6 +7,7 @@ namespace Mailer\Sdk\Resources;
 use Mailer\Sdk\Dto\Contact;
 use Mailer\Sdk\Dto\Paginated;
 use Mailer\Sdk\Http\HttpClient;
+use Mailer\Sdk\Resources\Concerns\PaginatesResults;
 
 /**
  * The Contacts resource: subscribe, list, fetch, update, delete, tag and
@@ -14,6 +15,8 @@ use Mailer\Sdk\Http\HttpClient;
  */
 final readonly class ContactsResource
 {
+    use PaginatesResults;
+
     public function __construct(private HttpClient $http)
     {
     }
@@ -45,6 +48,21 @@ final readonly class ContactsResource
         $response = $this->http->get('contacts', ['query' => $query]);
 
         return Paginated::fromArray($response, Contact::fromArray(...));
+    }
+
+    /**
+     * Lazily iterate every contact across all pages (GET /contacts).
+     *
+     * @param array<string, mixed> $query search, status, tag_id, list_id,
+     *                                    per_page (page is managed automatically).
+     *
+     * @return \Generator<int, Contact>
+     */
+    public function cursor(array $query = []): \Generator
+    {
+        return $this->paginate(
+            fn (int $page): Paginated => $this->list(array_merge($query, ['page' => $page])),
+        );
     }
 
     /**

@@ -8,12 +8,15 @@ use Mailer\Sdk\Dto\Paginated;
 use Mailer\Sdk\Dto\Template;
 use Mailer\Sdk\Dto\TemplateVariant;
 use Mailer\Sdk\Http\HttpClient;
+use Mailer\Sdk\Resources\Concerns\PaginatesResults;
 
 /**
  * The Templates resource: CRUD plus per-locale variants.
  */
 final readonly class TemplatesResource
 {
+    use PaginatesResults;
+
     public function __construct(private HttpClient $http)
     {
     }
@@ -30,6 +33,20 @@ final readonly class TemplatesResource
         $response = $this->http->get('templates', ['query' => $query]);
 
         return Paginated::fromArray($response, Template::fromArray(...));
+    }
+
+    /**
+     * Lazily iterate every template across all pages (GET /templates).
+     *
+     * @param array<string, mixed> $query per_page (page is managed automatically).
+     *
+     * @return \Generator<int, Template>
+     */
+    public function cursor(array $query = []): \Generator
+    {
+        return $this->paginate(
+            fn (int $page): Paginated => $this->list(array_merge($query, ['page' => $page])),
+        );
     }
 
     /**

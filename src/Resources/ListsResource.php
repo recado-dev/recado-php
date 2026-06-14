@@ -8,12 +8,15 @@ use Mailer\Sdk\Dto\Contact;
 use Mailer\Sdk\Dto\ContactList;
 use Mailer\Sdk\Dto\Paginated;
 use Mailer\Sdk\Http\HttpClient;
+use Mailer\Sdk\Resources\Concerns\PaginatesResults;
 
 /**
  * The Lists resource: list, create and manage list membership.
  */
 final readonly class ListsResource
 {
+    use PaginatesResults;
+
     public function __construct(private HttpClient $http)
     {
     }
@@ -30,6 +33,20 @@ final readonly class ListsResource
         $response = $this->http->get('lists', ['query' => $query]);
 
         return Paginated::fromArray($response, ContactList::fromArray(...));
+    }
+
+    /**
+     * Lazily iterate every contact list across all pages (GET /lists).
+     *
+     * @param array<string, mixed> $query per_page (page is managed automatically).
+     *
+     * @return \Generator<int, ContactList>
+     */
+    public function cursor(array $query = []): \Generator
+    {
+        return $this->paginate(
+            fn (int $page): Paginated => $this->list(array_merge($query, ['page' => $page])),
+        );
     }
 
     /**
@@ -60,6 +77,21 @@ final readonly class ListsResource
         $response = $this->http->get('lists/'.$listId.'/contacts', ['query' => $query]);
 
         return Paginated::fromArray($response, Contact::fromArray(...));
+    }
+
+    /**
+     * Lazily iterate every contact of a list across all pages
+     * (GET /lists/{id}/contacts).
+     *
+     * @param array<string, mixed> $query per_page (page is managed automatically).
+     *
+     * @return \Generator<int, Contact>
+     */
+    public function contactsCursor(int $listId, array $query = []): \Generator
+    {
+        return $this->paginate(
+            fn (int $page): Paginated => $this->contacts($listId, array_merge($query, ['page' => $page])),
+        );
     }
 
     /**

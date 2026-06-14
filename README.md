@@ -153,6 +153,76 @@ foreach ($message->events as $event) {
 Paginated endpoints return a `Paginated` DTO exposing `->data` (mapped DTOs),
 `->meta` and `->links`. The tags endpoint returns a flat `Tag[]` array.
 
+### Automatic pagination
+
+Paginated resources also expose a `cursor()` generator that lazily walks every
+page for you, fetching one page at a time and yielding each mapped DTO. You
+never track page numbers — just iterate:
+
+```php
+foreach ($client->contacts()->cursor(['status' => 'subscribed']) as $contact) {
+    echo $contact->email.PHP_EOL;
+}
+
+// Available cursors (each yields the same DTOs as the matching list()):
+$client->contacts()->cursor($query);          // Contact
+$client->messages()->cursor($query);          // Message
+$client->lists()->cursor($query);             // ContactList
+$client->lists()->contactsCursor($id, $query); // Contact
+$client->templates()->cursor($query);         // Template
+```
+
+A `cursor()` returns a plain `\Generator` (the core SDK never depends on
+Illuminate). In a Laravel app you can wrap it in a `LazyCollection` to use the
+collection pipeline:
+
+```php
+use Illuminate\Support\LazyCollection;
+
+LazyCollection::make($client->contacts()->cursor())
+    ->filter(fn ($contact) => $contact->status === 'subscribed')
+    ->each(fn ($contact) => /* ... */);
+```
+
+## Resilience
+
+When you let the SDK build its own HTTP client (the default — you do not inject
+a Guzzle client), it installs an automatic retry middleware with exponential
+backoff.
+
+- **What is retried:** network/connection errors, `5xx` responses, and `429`
+  rate-limit responses.
+- **Idempotency safety:** only requests that are safe to repeat are retried —
+  `GET`/`HEAD`/`OPTIONS`/`PUT`/`DELETE`, or any request that carries an
+  `Idempotency-Key` header. A `POST`/`PATCH` **without** an `Idempotency-Key`
+  (e.g. an `email()`/`batch()` send made without `idempotencyKey:`) is **never**
+  retried, so the transport can never duplicate a send. Pass an idempotency key
+  to make sends retry-safe.
+- **Retry-After:** on a `429`, the `Retry-After` header is honored (numeric
+  seconds or an HTTP-date); otherwise the delay is exponential
+  (`min(retry_max_delay, retry_base_delay * 2 ^ attempt)`, no jitter).
+
+Tune it through the optional `options` argument (4th constructor parameter):
+
+```php
+$client = new MailerClient(
+    baseUrl: 'https://app.example.com/api/v1',
+    token: 'your-project-api-key',
+    httpClient: null,
+    options: [
+        'retries' => 2,            // max retry attempts
+        'retry_base_delay' => 200, // ms, exponential backoff base
+        'retry_max_delay' => 5000, // ms, backoff cap
+        'retry_on_status' => range(500, 599), // statuses to retry (429 always retried)
+        'timeout' => 30,           // Guzzle request timeout (seconds)
+        'connect_timeout' => 10,   // Guzzle connect timeout (seconds)
+    ],
+);
+```
+
+When you inject your own Guzzle client it is used **as-is** — add the retry
+middleware yourself via `Mailer\Sdk\Http\RetryMiddleware::make()` if you want it.
+
 ## Laravel usage
 
 The package is auto-discovered. Publish the config and set the env vars:

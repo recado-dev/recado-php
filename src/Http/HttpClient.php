@@ -6,6 +6,7 @@ namespace Mailer\Sdk\Http;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\HandlerStack;
 use Mailer\Sdk\Exception\AuthenticationException;
 use Mailer\Sdk\Exception\MailerException;
 use Mailer\Sdk\Exception\NotFoundException;
@@ -21,12 +22,45 @@ final class HttpClient
 {
     private readonly ClientInterface $client;
 
+    /**
+     * @param array<string, mixed> $options Transport/resilience options applied
+     *                                       only when no client is injected:
+     *                                       `retries`, `retry_base_delay`,
+     *                                       `retry_max_delay`, `retry_on_status`,
+     *                                       `timeout`, `connect_timeout`.
+     */
     public function __construct(
         private readonly string $baseUrl,
         private readonly string $token,
         ?ClientInterface $client = null,
+        array $options = [],
     ) {
-        $this->client = $client ?? new Client();
+        $this->client = $client ?? $this->buildClient($options);
+    }
+
+    /**
+     * Build the default Guzzle client with the automatic-retry middleware and
+     * optional timeouts. Used only when no client is injected (an injected
+     * client is taken as-is so callers keep full control).
+     *
+     * @param array<string, mixed> $options
+     */
+    private function buildClient(array $options): ClientInterface
+    {
+        $stack = HandlerStack::create();
+        $stack->push(RetryMiddleware::make($options));
+
+        $config = ['handler' => $stack];
+
+        if (isset($options['timeout'])) {
+            $config['timeout'] = $options['timeout'];
+        }
+
+        if (isset($options['connect_timeout'])) {
+            $config['connect_timeout'] = $options['connect_timeout'];
+        }
+
+        return new Client($config);
     }
 
     /**

@@ -34,12 +34,20 @@ final class MailerClient
 
     private ?MessagesResource $messages = null;
 
+    /**
+     * @param array<string, mixed> $options Transport/resilience options applied
+     *                                       only when no client is injected:
+     *                                       `retries`, `retry_base_delay`,
+     *                                       `retry_max_delay`, `retry_on_status`,
+     *                                       `timeout`, `connect_timeout`.
+     */
     public function __construct(
         string $baseUrl,
         string $token,
         ?ClientInterface $httpClient = null,
+        array $options = [],
     ) {
-        $this->http = new HttpClient(rtrim($baseUrl, '/'), $token, $httpClient);
+        $this->http = new HttpClient(rtrim($baseUrl, '/'), $token, $httpClient, $options);
     }
 
     public function send(): SendResource
