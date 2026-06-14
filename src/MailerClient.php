@@ -6,6 +6,7 @@ namespace Mailer\Sdk;
 
 use GuzzleHttp\ClientInterface;
 use Mailer\Sdk\Http\HttpClient;
+use Mailer\Sdk\Resources\CampaignsResource;
 use Mailer\Sdk\Resources\ContactsResource;
 use Mailer\Sdk\Resources\ListsResource;
 use Mailer\Sdk\Resources\MessagesResource;
@@ -33,6 +34,8 @@ final class MailerClient
     private ?TemplatesResource $templates = null;
 
     private ?MessagesResource $messages = null;
+
+    private ?CampaignsResource $campaigns = null;
 
     /**
      * @param array<string, mixed> $options Transport/resilience options applied
@@ -78,5 +81,10 @@ final class MailerClient
     public function messages(): MessagesResource
     {
         return $this->messages ??= new MessagesResource($this->http);
+    }
+
+    public function campaigns(): CampaignsResource
+    {
+        return $this->campaigns ??= new CampaignsResource($this->http);
     }
 }

@@ -1,7 +1,7 @@
 # Mailer PHP SDK
 
 Official PHP SDK for the **Mailer** REST API v1. It wraps the transactional
-send, contacts, lists, tags, templates and messages endpoints behind typed
+send, contacts, lists, tags, templates, messages and campaigns endpoints behind typed
 resources and readonly DTOs, with first-class error handling and idempotency
 support.
 
@@ -148,7 +148,16 @@ $message = $client->messages()->get('11111111-2222-...');
 foreach ($message->events as $event) {
     // $event->type, $event->payload, $event->occurredAt
 }
+
+// Campaigns (read-only by design — no send/schedule from the SDK)
+$campaigns = $client->campaigns()->list(['per_page' => 50]);
+$campaign = $client->campaigns()->get(7);
+// $campaign->stats is a populated CampaignStats only on get():
+echo $campaign->stats->openRate ?? 0; // rates are null when undefined
 ```
+
+The campaigns resource is intentionally read-only: it never sends or schedules
+a campaign. Trigger mass sends from the dashboard, not the SDK.
 
 Paginated endpoints return a `Paginated` DTO exposing `->data` (mapped DTOs),
 `->meta` and `->links`. The tags endpoint returns a flat `Tag[]` array.
@@ -167,6 +176,7 @@ foreach ($client->contacts()->cursor(['status' => 'subscribed']) as $contact) {
 // Available cursors (each yields the same DTOs as the matching list()):
 $client->contacts()->cursor($query);          // Contact
 $client->messages()->cursor($query);          // Message
+$client->campaigns()->cursor($query);         // Campaign
 $client->lists()->cursor($query);             // ContactList
 $client->lists()->contactsCursor($id, $query); // Contact
 $client->templates()->cursor($query);         // Template
