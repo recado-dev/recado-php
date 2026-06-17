@@ -7,11 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-06-17
+
+### Changed
+
+- Docs: the package is now published on **Packagist**, so installation is just
+  `composer require mosaiqo/mailer-php:^1.1` — the README and `AGENTS.md` drop
+  the Composer VCS `repositories` entry and the private-repo SSH/deploy-key
+  steps (no longer needed). Removed the private-repo deploy-access human gate
+  from the agent playbook.
+
+## [1.1.1] - 2026-06-17
+
 ### Added
 
 - `AGENTS.md` — a terse, imperative integration playbook for AI agents wiring
   the SDK into a consuming Laravel app, with the human-gate steps (API key,
-  private-repo deploy access, template slug) called out. README links to it.
+  template slug) called out. README links to it.
 
 ## [1.1.0] - 2026-06-17
 
@@ -52,6 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (wrappable in a Laravel `LazyCollection`).
 - Read-only campaigns resource (`campaigns()->list()` / `get()` with stats).
 
-[Unreleased]: https://github.com/mosaiqo/mailer-php/compare/v1.1.0...main
+[Unreleased]: https://github.com/mosaiqo/mailer-php/compare/v1.1.2...main
+[1.1.2]: https://github.com/mosaiqo/mailer-php/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/mosaiqo/mailer-php/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/mosaiqo/mailer-php/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/mosaiqo/mailer-php/releases/tag/v1.0.0

@@ -32,32 +32,15 @@ idempotency support — plus an optional, batteries-included Laravel integration
 
 ## Installation
 
-> The standalone repository is `git@github.com:mosaiqo/mailer-php.git` (see
-> [`PUBLISHING.md`](PUBLISHING.md) for how the package is split out of the
-> monorepo into its own repo).
-
-### (a) Composer VCS (private repo)
-
-Add the standalone repository to your app's `composer.json`:
-
-```json
-"repositories": [
-    { "type": "vcs", "url": "git@github.com:mosaiqo/mailer-php.git" }
-]
-```
-
-Then require it:
+The package is published on
+[Packagist](https://packagist.org/packages/mosaiqo/mailer-php) — require it
+directly with Composer, no repository entry or Git/SSH access needed:
 
 ```bash
-composer require mosaiqo/mailer-php:^1.0
+composer require mosaiqo/mailer-php:^1.1
 ```
 
-Before the first tag exists you can require the default branch with
-`composer require "mosaiqo/mailer-php:dev-main"`. Private repos need Git read
-access (an SSH deploy key or an HTTPS Composer token). See
-[`PUBLISHING.md`](PUBLISHING.md) for details.
-
-### (b) Path repository (monorepo development)
+### Path repository (monorepo development)
 
 When developing inside the Mailer monorepo, point Composer at the package
 directory with a **path repository**:
@@ -83,25 +66,11 @@ The full, copy-pasteable recipe to route a real Laravel app's email through a
 mailer-app instance. (Detailed behavior and options are documented further
 down.)
 
-**1. Add the private repo and require the package.** In your app's
-`composer.json`:
-
-```json
-"repositories": [
-    { "type": "vcs", "url": "git@github.com:mosaiqo/mailer-php.git" }
-]
-```
+**1. Require the package** (published on Packagist):
 
 ```bash
-composer require mosaiqo/mailer-php:^1.0
+composer require mosaiqo/mailer-php:^1.1
 ```
-
-> **Private repo — deployed apps need Git read access.** `mosaiqo/mailer-php`
-> is private, so `composer install` on a build/deploy server must be able to
-> read it over SSH. Add a **deploy key** (a read-only SSH key registered on the
-> `mosaiqo/mailer-php` repo) or a **machine user** to the deploy environment,
-> or configure an HTTPS Composer auth token. Local dev just needs your own SSH
-> access to the repo.
 
 **2. Set the environment variables.**
 
@@ -665,5 +634,5 @@ composer test        # alias for: vendor/bin/phpunit
 Tests run entirely against a Guzzle `MockHandler` — no network access required.
 
 For how this package is split out of the monorepo into its own repository,
-tagged with SemVer and consumed via a private Composer VCS repo, see
+tagged with SemVer and published to Packagist, see
 [`PUBLISHING.md`](PUBLISHING.md).
