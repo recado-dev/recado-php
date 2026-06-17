@@ -5,6 +5,11 @@ send, contacts, lists, tags, templates, messages and campaigns endpoints behind
 typed resources and readonly DTOs, with first-class error handling and
 idempotency support — plus an optional, batteries-included Laravel integration.
 
+> ⚠️ **Read-only mirror.** This repo is an automated split of the SDK from a
+> private monorepo. **Do not open pull requests here** — they can't be merged
+> (the mirror is force-pushed) and will be auto-closed. Found a bug or have a
+> request? **Open an issue** (see [CONTRIBUTING](CONTRIBUTING.md)).
+
 > 🤖 **Integrating with an AI agent?** Start with [AGENTS.md](AGENTS.md) — a
 > terse, imperative integration playbook with the human-gate steps called out.
 > This README is the full human reference.
