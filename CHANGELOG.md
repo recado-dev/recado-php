@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `AGENTS.md` — a terse, imperative integration playbook for AI agents wiring
+  the SDK into a consuming Laravel app, with the human-gate steps (API key,
+  private-repo deploy access, template slug) called out. README links to it.
+
 ## [1.1.0] - 2026-06-17
 
 ### Added

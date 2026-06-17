@@ -5,6 +5,10 @@ send, contacts, lists, tags, templates, messages and campaigns endpoints behind
 typed resources and readonly DTOs, with first-class error handling and
 idempotency support — plus an optional, batteries-included Laravel integration.
 
+> 🤖 **Integrating with an AI agent?** Start with [AGENTS.md](AGENTS.md) — a
+> terse, imperative integration playbook with the human-gate steps called out.
+> This README is the full human reference.
+
 ## Features
 
 - Typed resources + readonly DTOs over the full Mailer API v1 surface (send,
