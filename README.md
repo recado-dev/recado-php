@@ -263,8 +263,10 @@ past the cap). Removing a token from an unknown contact raises a
 
 `email()` and `batch()` accept a named `idempotencyKey` argument, sent as the
 `Idempotency-Key` header. Re-sending with the same key returns the original
-result instead of creating a duplicate (a conflicting reuse raises a
-`ValidationException` with code `idempotency_conflict`).
+result instead of creating a duplicate. While the first request is still in
+flight a concurrent retry with the same key gets a `409` — surfaced as a base
+`MailerException` with code `idempotency_conflict`; an empty or over-long key is
+rejected with a `422` `ValidationException` (code `invalid_idempotency_key`).
 
 ```php
 $client->send()->email(
@@ -424,7 +426,7 @@ Every non-2xx response is mapped to a typed exception. All exceptions extend
 | ------------------------- | ----------- | ----- |
 | `AuthenticationException` | 401         | Missing/invalid/expired token. |
 | `NotFoundException`       | 404         | e.g. `contact_not_found`, `template_not_found`, `message_not_found`; a sandbox `simulate()` from a **production** token gets a bare `404` (no code). |
-| `ValidationException`     | 422         | Validation failures and domain rejections (`recipient_suppressed`, `quota_exceeded`, `template_not_found`, `invalid_status_transition`, sandbox `invalid_event_for_channel` / `link_index`, ...). Adds `errors(): array` (field => messages). |
+| `ValidationException`     | 422         | Validation failures and domain rejections (`recipient_suppressed`, `quota_exceeded`, `template_not_found`, `invalid_status_transition`, sandbox `invalid_event_for_channel` / `link_index_out_of_range`, ...). Adds `errors(): array` (field => messages). |
 | `RateLimitException`      | 429         | Adds `retryAfter(): ?int` parsed from the `Retry-After` header. |
 | `MailerConfigurationException` | — (local) | Missing/empty/placeholder base URL or empty token; thrown at client construction before any request. |
 | `UnsupportedFeatureException` | — (local) | The send relies on something the `/send` API has no field for (e.g. attachments). |

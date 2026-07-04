@@ -37,6 +37,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   accepts native FCM device tokens only (`in:ios,android`) — web push uses the
   separate VAPID subscription flow. A doc-following consumer passing `web`
   received a runtime `422`. No API change; the SDK docs are now correct.
+- **README error-handling accuracy.** The error-handling docs listed the sandbox
+  click failure as `link_index`; the API actually emits `link_index_out_of_range`.
+  The idempotency section claimed an `idempotency_conflict` raises a
+  `ValidationException`; the API returns it as a `409`, which the SDK surfaces as
+  the base `MailerException` (a `ValidationException` `422` is instead the
+  `invalid_idempotency_key` case). No code change; the docs now match what the
+  API and the `HttpClient` status mapping actually do.
 - `composer.json` now requires PHP `>= 8.3`. The SDK has used typed class
   constants (a PHP 8.3 feature) since v1.1.0, so installs on PHP 8.2 already
   fataled on class load — the constraint now matches what actually runs
