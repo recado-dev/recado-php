@@ -72,15 +72,20 @@ final class MailerTransport extends AbstractTransport
 
         $base = PayloadMapper::base($email, $this->config, $this->transportLogger);
 
-        $key = IdempotencyKey::compute($base, $this->config, $this->header($email, MailerHeaders::IDEMPOTENCY_KEY));
+        // Resolve only the explicit X-Mailer-Idempotency-Key override here; the
+        // content key MUST be computed per recipient (single) / per recipient
+        // list (batch), AFTER `to` is merged — otherwise identical content to
+        // different recipients hashes to the same key and the platform silently
+        // dedupes the later sends.
+        $override = $this->header($email, MailerHeaders::IDEMPOTENCY_KEY);
 
         if (count($recipients) === 1) {
-            $this->sendSingle($recipients[0], $base, $key);
+            $this->sendSingle($recipients[0], $base, $override);
 
             return;
         }
 
-        $this->sendBatch($recipients, $base, $key);
+        $this->sendBatch($recipients, $base, $override);
     }
 
     public function __toString(): string
@@ -115,9 +120,14 @@ final class MailerTransport extends AbstractTransport
     /**
      * @param array<string, mixed> $base
      */
-    private function sendSingle(string $recipient, array $base, ?string $key): void
+    private function sendSingle(string $recipient, array $base, ?string $override): void
     {
         $payload = ['to' => $recipient] + $base;
+
+        // Key derived from the full payload (content + this recipient), so two
+        // sends of the same content to different recipients get distinct keys
+        // while a queue retry of the same send dedupes.
+        $key = IdempotencyKey::compute($payload, $this->config, $override);
 
         try {
             $this->client->send()->email($payload, $key);
@@ -151,8 +161,15 @@ final class MailerTransport extends AbstractTransport
      * @param array<int, string> $recipients
      * @param array<string, mixed> $base
      */
-    private function sendBatch(array $recipients, array $base, ?string $key): void
+    private function sendBatch(array $recipients, array $base, ?string $override): void
     {
+        // One shared key across the batch, derived from content + the SORTED
+        // recipient list, so a requeued job (same list) dedupes while a batch of
+        // the same content to a different list gets a distinct key.
+        $canonical = $recipients;
+        sort($canonical);
+        $key = IdempotencyKey::compute(['to' => $canonical] + $base, $this->config, $override);
+
         $messages = [];
 
         foreach ($recipients as $recipient) {

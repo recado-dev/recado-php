@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-07-05
+
+### Fixed
+
+- **`content` idempotency no longer silently drops sends to different
+  recipients.** On the Laravel mail transport path the idempotency key was
+  computed from the content *before* the recipient was merged, so identical
+  content sent to two different recipients produced the same `txn_…` key and the
+  platform deduped the later sends (no exception, no log — silent data loss). The
+  key is now computed per recipient (single send) and from the sorted recipient
+  list (batch), so a requeued job still dedupes while distinct recipients/lists
+  get distinct keys. An explicit `X-Mailer-Idempotency-Key` header still
+  overrides everything.
+
 ## [1.3.0] - 2026-07-04
 
 ### Changed
@@ -119,7 +133,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (wrappable in a Laravel `LazyCollection`).
 - Read-only campaigns resource (`campaigns()->list()` / `get()` with stats).
 
-[Unreleased]: https://github.com/mosaiqo/mailer-php/compare/v1.3.0...main
+[Unreleased]: https://github.com/mosaiqo/mailer-php/compare/v1.3.1...main
+[1.3.1]: https://github.com/mosaiqo/mailer-php/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/mosaiqo/mailer-php/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/mosaiqo/mailer-php/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/mosaiqo/mailer-php/compare/v1.1.1...v1.1.2

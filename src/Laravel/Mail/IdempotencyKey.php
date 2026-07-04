@@ -20,11 +20,14 @@ use Illuminate\Support\Str;
 final class IdempotencyKey
 {
     /**
-     * @param array<string, mixed> $payload    The /send content payload; when it
-     *                                          carries a `to` key (channel path)
-     *                                          the key is per recipient, when it
-     *                                          does not (transport batch path) one
-     *                                          key is shared across recipients.
+     * @param array<string, mixed> $payload    The /send content payload. Its `to`
+     *                                          value scopes the key: a scalar
+     *                                          recipient yields a per-recipient
+     *                                          key (single send / channel path); a
+     *                                          sorted recipient list yields one key
+     *                                          shared across a batch. Content
+     *                                          without any `to` would collide
+     *                                          across recipients — always pass it.
      * @param array<string, mixed> $mailConfig The `mailer-sdk.mail` config block.
      */
     public static function compute(array $payload, array $mailConfig, ?string $override = null): ?string

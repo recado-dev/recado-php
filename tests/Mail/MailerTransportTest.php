@@ -257,6 +257,58 @@ final class MailerTransportTest extends TestCase
         $this->assertStringStartsWith('txn_', $first);
     }
 
+    public function test_content_idempotency_key_differs_per_recipient(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(202, ['data' => ['id' => '1', 'status' => 'queued']]),
+            $this->jsonResponse(202, ['data' => ['id' => '2', 'status' => 'queued']]),
+        ], $history);
+
+        $transport = $this->transport($client, ['idempotency' => 'content']);
+
+        // Identical content to two different recipients MUST get distinct keys —
+        // otherwise the platform silently dedupes and the second never sends.
+        $transport->send($this->email()->to('a@example.com')->subject('Same')->html('<p>same</p>'));
+        $transport->send($this->email()->to('b@example.com')->subject('Same')->html('<p>same</p>'));
+
+        $first = $history[0]['request']->getHeaderLine('Idempotency-Key');
+        $second = $history[1]['request']->getHeaderLine('Idempotency-Key');
+
+        $this->assertStringStartsWith('txn_', $first);
+        $this->assertStringStartsWith('txn_', $second);
+        $this->assertNotSame($first, $second);
+    }
+
+    public function test_batch_idempotency_key_depends_on_the_recipient_list(): void
+    {
+        $history = [];
+        $batch = fn (int $n): mixed => $this->jsonResponse(202, ['data' => [
+            'messages' => array_map(
+                static fn (int $i): array => ['index' => $i, 'status' => 'queued', 'id' => (string) $i],
+                range(0, $n - 1),
+            ),
+            'queued' => $n,
+            'failed' => 0,
+        ]]);
+        $client = $this->clientWithResponses([$batch(2), $batch(2), $batch(2)], $history);
+
+        $transport = $this->transport($client, ['idempotency' => 'content']);
+
+        // Same content + same recipient set (order swapped) → same key (retry dedup);
+        // same content + a different recipient set → distinct key.
+        $transport->send($this->email()->to('a@example.com')->cc('b@example.com')->subject('B')->html('<p>x</p>'));
+        $transport->send($this->email()->to('b@example.com')->cc('a@example.com')->subject('B')->html('<p>x</p>'));
+        $transport->send($this->email()->to('c@example.com')->cc('d@example.com')->subject('B')->html('<p>x</p>'));
+
+        $k1 = $history[0]['request']->getHeaderLine('Idempotency-Key');
+        $k2 = $history[1]['request']->getHeaderLine('Idempotency-Key');
+        $k3 = $history[2]['request']->getHeaderLine('Idempotency-Key');
+
+        $this->assertSame($k1, $k2);
+        $this->assertNotSame($k1, $k3);
+    }
+
     public function test_explicit_idempotency_header_is_respected(): void
     {
         $history = [];
