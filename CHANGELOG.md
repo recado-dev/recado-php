@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-04
+
 ### Changed
 
 - `MAILER_BASE_URL` is now **optional** and defaults to the hosted API
@@ -117,7 +119,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (wrappable in a Laravel `LazyCollection`).
 - Read-only campaigns resource (`campaigns()->list()` / `get()` with stats).
 
-[Unreleased]: https://github.com/mosaiqo/mailer-php/compare/v1.2.0...main
+[Unreleased]: https://github.com/mosaiqo/mailer-php/compare/v1.3.0...main
+[1.3.0]: https://github.com/mosaiqo/mailer-php/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/mosaiqo/mailer-php/compare/v1.1.2...v1.2.0
 [1.1.2]: https://github.com/mosaiqo/mailer-php/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/mosaiqo/mailer-php/compare/v1.1.0...v1.1.1
