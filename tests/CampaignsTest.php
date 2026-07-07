@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests;
+namespace Recado\Sdk\Tests;
 
-use Mailer\Sdk\Dto\Campaign;
-use Mailer\Sdk\Dto\CampaignStats;
+use Recado\Sdk\Dto\Campaign;
+use Recado\Sdk\Dto\CampaignStats;
 
 final class CampaignsTest extends TestCase
 {

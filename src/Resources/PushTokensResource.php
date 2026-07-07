@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Resources;
+namespace Recado\Sdk\Resources;
 
-use Mailer\Sdk\Dto\PushTokenResult;
-use Mailer\Sdk\Http\HttpClient;
+use Recado\Sdk\Dto\PushTokenResult;
+use Recado\Sdk\Http\HttpClient;
 
 /**
  * The Push tokens resource: register and remove device tokens used to deliver

@@ -1,8 +1,8 @@
-# AGENTS.md — mailer-php integration playbook
+# AGENTS.md — recado-php integration playbook
 
-**Goal:** Wire a Laravel app to send email through mailer-app via this SDK.
+**Goal:** Wire a Laravel app to send email through Recado via this SDK.
 
-For an AI agent integrating `mosaiqo/mailer-php` into a **consuming** Laravel app.
+For an AI agent integrating `recado/recado-php` into a **consuming** Laravel app.
 Terse and imperative — do exactly this. Full human reference: [README.md](README.md).
 
 ## Steps
@@ -10,19 +10,22 @@ Terse and imperative — do exactly this. Full human reference: [README.md](READ
 1. Require the package (published on Packagist — no repo entry or Git/SSH access
    needed):
    ```bash
-   composer require mosaiqo/mailer-php:^1.2
+   composer require recado/recado-php:^2.0
    ```
-2. Set env. Both connection vars are **REQUIRED** — there is NO default; a
-   missing/empty/placeholder value throws `MailerConfigurationException` at boot
-   instead of silently sending to a dead host:
+2. Set env. `RECADO_API_TOKEN` is **REQUIRED**; `RECADO_BASE_URL` is optional
+   and defaults to the hosted API (`https://recado.dev/api/v1`) — set it only
+   for self-hosted/other environments. An empty token, a placeholder base URL
+   or the decommissioned `mailer.mosaiqo.com` host throws
+   `RecadoConfigurationException` at boot instead of silently sending to a
+   dead host:
    ```dotenv
-   MAIL_MAILER=mailer
-   MAILER_BASE_URL=https://<your-mailer-app-host>/api/v1
-   MAILER_API_TOKEN=<project API key>
+   MAIL_MAILER=recado
+   RECADO_API_TOKEN=<project API key>
+   # RECADO_BASE_URL=https://<your-recado-host>/api/v1   # self-hosted only
    ```
 3. Add the mailer to `config/mail.php` under `mailers`:
    ```php
-   'mailer' => ['transport' => 'mailer'],
+   'recado' => ['transport' => 'recado'],
    ```
 4. Send — pick one:
    - Mailable / plain message through the transport:
@@ -31,9 +34,9 @@ Terse and imperative — do exactly this. Full human reference: [README.md](READ
      ```
    - API client with a stored template by slug:
      ```php
-     use Mailer\Sdk\Laravel\Facades\Mailer;
+     use Recado\Sdk\Laravel\Facades\Recado;
 
-     Mailer::send()->email([
+     Recado::send()->email([
          'to' => 'jane@example.com',
          'template' => 'welcome',          // slug must already exist (see gates)
          'variables' => ['first_name' => 'Jane'],
@@ -46,29 +49,29 @@ Terse and imperative — do exactly this. Full human reference: [README.md](READ
 
 ## ⚠️ Human gates — STOP and ask the human; do NOT do these yourself
 
-- **API key** — created in the mailer-app UI: **Settings → API keys**, per
+- **API key** — created in the Recado UI: **Settings → API keys**, per
   project. REQUEST it from the human. Never invent, guess, or hardcode a token.
 - **Template slug** — a `template` send needs that slug to ALREADY exist on the
-  mailer-app server. Confirm with the human (or have them create it there)
+  Recado server. Confirm with the human (or have them create it there)
   before using it; an unknown slug is rejected (`422 template_not_found`).
 
 ## Discoverability
 
-This file ships inside `vendor/mosaiqo/mailer-php/AGENTS.md`, and agents don't
+This file ships inside `vendor/recado/recado-php/AGENTS.md`, and agents don't
 scan `vendor/`. When you integrate, add a one-line pointer to the **consuming**
 repo's own `CLAUDE.md` / `AGENTS.md`:
 
-> To send email use mailer-php — follow `vendor/mosaiqo/mailer-php/AGENTS.md`.
+> To send email use recado-php — follow `vendor/recado/recado-php/AGENTS.md`.
 
 ## Other resources
 
 Beyond email sends, the client exposes:
 
-- `Mailer::notifications()->send([...])` — multichannel (in-app + push)
+- `Recado::notifications()->send([...])` — multichannel (in-app + push)
   notifications; per-channel failures are DATA, not exceptions.
-- `Mailer::push()->register($email, $token, $platform)` / `->remove($email, $token)`
+- `Recado::push()->register($email, $token, $platform)` / `->remove($email, $token)`
   — manage device tokens for push delivery.
-- `Mailer::sandbox()->simulate($uuid, $event)` — drive the pipeline from a
+- `Recado::sandbox()->simulate($uuid, $event)` — drive the pipeline from a
   sandbox token in CI (see **Testing with the sandbox** in [README.md](README.md)).
 
 ## More

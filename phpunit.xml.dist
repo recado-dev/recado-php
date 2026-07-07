@@ -5,7 +5,7 @@
          colors="true"
          cacheDirectory=".phpunit.cache">
     <testsuites>
-        <testsuite name="Mailer SDK Test Suite">
+        <testsuite name="Recado SDK Test Suite">
             <directory>tests</directory>
         </testsuite>
     </testsuites>

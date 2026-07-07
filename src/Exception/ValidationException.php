@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Exception;
+namespace Recado\Sdk\Exception;
 
 use Throwable;
 
@@ -10,7 +10,7 @@ use Throwable;
  * Thrown on HTTP 422 responses (validation failures and domain-level rejections
  * such as recipient_suppressed, quota_exceeded, template_not_found, ...).
  */
-class ValidationException extends MailerException
+class ValidationException extends RecadoException
 {
     /**
      * @param array<string, array<int, string>> $errors Field => list of messages.

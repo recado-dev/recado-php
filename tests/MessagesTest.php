@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests;
+namespace Recado\Sdk\Tests;
 
-use Mailer\Sdk\Dto\Message;
-use Mailer\Sdk\Dto\MessageEvent;
+use Recado\Sdk\Dto\Message;
+use Recado\Sdk\Dto\MessageEvent;
 
 final class MessagesTest extends TestCase
 {

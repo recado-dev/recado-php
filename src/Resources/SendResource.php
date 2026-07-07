@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Resources;
+namespace Recado\Sdk\Resources;
 
-use Mailer\Sdk\Dto\BatchResult;
-use Mailer\Sdk\Dto\SentMessage;
-use Mailer\Sdk\Http\HttpClient;
+use Recado\Sdk\Dto\BatchResult;
+use Recado\Sdk\Dto\SentMessage;
+use Recado\Sdk\Http\HttpClient;
 
 /**
  * The Send resource: transactional sends, batch sends, event tracking and

@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests\Laravel;
+namespace Recado\Sdk\Tests\Laravel;
 
-use Mailer\Sdk\Laravel\MailerServiceProvider;
+use Recado\Sdk\Laravel\RecadoServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 /**
  * Base test case that boots a minimal Laravel application (via Testbench) with
- * the SDK service provider registered, used to prove the Mail::extend('mailer')
+ * the SDK service provider registered, used to prove the Mail::extend('recado')
  * wiring end to end.
  */
 abstract class TestCase extends Orchestra
@@ -19,14 +19,14 @@ abstract class TestCase extends Orchestra
      */
     protected function getPackageProviders($app): array
     {
-        return [MailerServiceProvider::class];
+        return [RecadoServiceProvider::class];
     }
 
     protected function defineEnvironment($app): void
     {
-        $app['config']->set('mailer-sdk.base_url', 'https://mailer.example.com/api/v1');
-        $app['config']->set('mailer-sdk.token', 'test-token');
-        $app['config']->set('mail.default', 'mailer');
-        $app['config']->set('mail.mailers.mailer', ['transport' => 'mailer']);
+        $app['config']->set('recado-sdk.base_url', 'https://recado.example.com/api/v1');
+        $app['config']->set('recado-sdk.token', 'test-token');
+        $app['config']->set('mail.default', 'recado');
+        $app['config']->set('mail.mailers.recado', ['transport' => 'recado']);
     }
 }

@@ -2,19 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Exception;
+namespace Recado\Sdk\Exception;
 
 use RuntimeException;
 use Throwable;
 
 /**
- * Base exception for every error surfaced by the Mailer SDK.
+ * Base exception for every error surfaced by the Recado SDK.
  *
  * Every exception exposes the API machine code, the HTTP status and the raw
  * decoded response body so callers can branch on stable, programmatic values
  * instead of parsing human-facing messages.
  */
-class MailerException extends RuntimeException
+class RecadoException extends RuntimeException
 {
     /**
      * @param array<string, mixed>|null $body The raw decoded response envelope.

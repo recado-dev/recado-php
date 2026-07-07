@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Dto;
+namespace Recado\Sdk\Dto;
 
 /**
  * A tag. `contactsCount` is only present on the GET /tags listing.

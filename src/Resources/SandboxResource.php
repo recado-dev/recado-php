@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Resources;
+namespace Recado\Sdk\Resources;
 
-use Mailer\Sdk\Dto\SimulatedEvent;
-use Mailer\Sdk\Http\HttpClient;
+use Recado\Sdk\Dto\SimulatedEvent;
+use Recado\Sdk\Http\HttpClient;
 
 /**
  * The Sandbox resource: drive the real delivery pipeline from a sandbox

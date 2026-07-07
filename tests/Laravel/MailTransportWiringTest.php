@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests\Laravel;
+namespace Recado\Sdk\Tests\Laravel;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
@@ -10,13 +10,13 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Support\Facades\Mail;
-use Mailer\Sdk\MailerClient;
+use Recado\Sdk\RecadoClient;
 use Psr\Http\Message\RequestInterface;
 
 /**
- * End-to-end proof that MAIL_MAILER=mailer routes Laravel's Mail facade through
- * the transport, the service provider's Mail::extend('mailer') registration and
- * the container-resolved MailerClient singleton.
+ * End-to-end proof that MAIL_MAILER=recado routes Laravel's Mail facade through
+ * the transport, the service provider's Mail::extend('recado') registration and
+ * the container-resolved RecadoClient singleton.
  */
 final class MailTransportWiringTest extends TestCase
 {
@@ -36,7 +36,7 @@ final class MailTransportWiringTest extends TestCase
         $this->assertCount(1, $history);
         $request = $history[0]['request'];
         $this->assertSame('POST', $request->getMethod());
-        $this->assertSame('https://mailer.example.com/api/v1/send', (string) $request->getUri());
+        $this->assertSame('https://recado.example.com/api/v1/send', (string) $request->getUri());
 
         $payload = json_decode((string) $request->getBody(), true);
         $this->assertSame('jane@example.com', $payload['to']);
@@ -46,7 +46,7 @@ final class MailTransportWiringTest extends TestCase
     }
 
     /**
-     * Re-bind the container's MailerClient singleton with one backed by a mock
+     * Re-bind the container's RecadoClient singleton with one backed by a mock
      * HTTP handler, so the real transport (built by Mail::extend) uses it.
      *
      * @param array<int, Response> $responses
@@ -60,8 +60,8 @@ final class MailTransportWiringTest extends TestCase
         $guzzle = new Client(['handler' => $stack]);
 
         $this->app->instance(
-            MailerClient::class,
-            new MailerClient('https://mailer.example.com/api/v1', 'test-token', $guzzle),
+            RecadoClient::class,
+            new RecadoClient('https://recado.example.com/api/v1', 'test-token', $guzzle),
         );
     }
 }

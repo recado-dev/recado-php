@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Laravel\Mail;
+namespace Recado\Sdk\Laravel\Mail;
 
 /**
- * Fluent builder for a transactional send from a notification's `toMailer()`
- * method (see {@see \Mailer\Sdk\Laravel\Notifications\MailerChannel}). Supports
+ * Fluent builder for a transactional send from a notification's `toRecado()`
+ * method (see {@see \Recado\Sdk\Laravel\Notifications\RecadoChannel}). Supports
  * inline subject/body/text sends and stored-template sends, an optional explicit
  * idempotency key and an optional explicit recipient that overrides the
  * notifiable's routing.
  */
-final class MailerMessage
+final class RecadoMessage
 {
     private ?string $subject = null;
 

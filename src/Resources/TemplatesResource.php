@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Resources;
+namespace Recado\Sdk\Resources;
 
-use Mailer\Sdk\Dto\Paginated;
-use Mailer\Sdk\Dto\Template;
-use Mailer\Sdk\Dto\TemplateVariant;
-use Mailer\Sdk\Http\HttpClient;
-use Mailer\Sdk\Resources\Concerns\PaginatesResults;
+use Recado\Sdk\Dto\Paginated;
+use Recado\Sdk\Dto\Template;
+use Recado\Sdk\Dto\TemplateVariant;
+use Recado\Sdk\Http\HttpClient;
+use Recado\Sdk\Resources\Concerns\PaginatesResults;
 
 /**
  * The Templates resource: CRUD plus per-locale variants.

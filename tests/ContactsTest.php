@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests;
+namespace Recado\Sdk\Tests;
 
-use Mailer\Sdk\Dto\Contact;
-use Mailer\Sdk\Dto\Paginated;
+use Recado\Sdk\Dto\Contact;
+use Recado\Sdk\Dto\Paginated;
 
 final class ContactsTest extends TestCase
 {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Dto;
+namespace Recado\Sdk\Dto;
 
 /**
  * A message (an email the platform sent). `events` is only populated on the

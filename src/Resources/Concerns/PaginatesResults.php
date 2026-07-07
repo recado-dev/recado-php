@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Resources\Concerns;
+namespace Recado\Sdk\Resources\Concerns;
 
-use Mailer\Sdk\Dto\Paginated;
-use Mailer\Sdk\Pagination\LazyPaginator;
+use Recado\Sdk\Dto\Paginated;
+use Recado\Sdk\Pagination\LazyPaginator;
 
 /**
  * Shared cursor logic for paginated resources: turn a per-page fetch closure

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Dto;
+namespace Recado\Sdk\Dto;
 
 /**
  * Engagement and deliverability statistics for a campaign, attached to the

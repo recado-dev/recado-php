@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Dto;
+namespace Recado\Sdk\Dto;
 
 /**
  * A template. The compact listing form omits `bodyHtml`/`bodyText`/`variants`;

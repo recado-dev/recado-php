@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Laravel\Mail;
+namespace Recado\Sdk\Laravel\Mail;
 
 use Illuminate\Contracts\Events\Dispatcher;
-use Mailer\Sdk\Dto\BatchResult;
-use Mailer\Sdk\Exception\MailerException;
-use Mailer\Sdk\Exception\ValidationException;
-use Mailer\Sdk\Laravel\Events\MessageSuppressed;
-use Mailer\Sdk\MailerClient;
+use Recado\Sdk\Dto\BatchResult;
+use Recado\Sdk\Exception\RecadoException;
+use Recado\Sdk\Exception\ValidationException;
+use Recado\Sdk\Laravel\Events\MessageSuppressed;
+use Recado\Sdk\RecadoClient;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Mailer\SentMessage;
@@ -19,9 +19,9 @@ use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\MessageConverter;
 
 /**
- * Symfony mail transport that routes Laravel's Mail facade through the Mailer
- * platform /send API. Registered as the "mailer" driver by the service
- * provider, so an app uses it with MAIL_MAILER=mailer.
+ * Symfony mail transport that routes Laravel's Mail facade through the Recado
+ * platform /send API. Registered as the "recado" driver by the service
+ * provider, so an app uses it with MAIL_MAILER=recado.
  *
  * Behavior is documented in the README "Laravel integration" section. Key
  * decisions: From/Reply-To are ignored (the platform uses the project's
@@ -33,7 +33,7 @@ use Symfony\Component\Mime\MessageConverter;
  * quota/domain rejections ARE failures (raised as a Symfony TransportException
  * so Laravel can retry per its own policy).
  */
-final class MailerTransport extends AbstractTransport
+final class RecadoTransport extends AbstractTransport
 {
     /**
      * Error codes that are NOT transport failures: the platform refused the
@@ -46,12 +46,12 @@ final class MailerTransport extends AbstractTransport
     private readonly ?LoggerInterface $transportLogger;
 
     /**
-     * @param array<string, mixed> $config The `mailer-sdk.mail` config block:
+     * @param array<string, mixed> $config The `recado-sdk.mail` config block:
      *                                      `attachments` ('send'|'fail'|'ignore')
      *                                      and `idempotency` ('content'|'random'|'off').
      */
     public function __construct(
-        private readonly MailerClient $client,
+        private readonly RecadoClient $client,
         private readonly array $config = [],
         ?Dispatcher $events = null,
         ?LoggerInterface $logger = null,
@@ -75,12 +75,12 @@ final class MailerTransport extends AbstractTransport
 
         $base = PayloadMapper::base($email, $this->config, $this->transportLogger);
 
-        // Resolve only the explicit X-Mailer-Idempotency-Key override here; the
+        // Resolve only the explicit X-Recado-Idempotency-Key override here; the
         // content key MUST be computed per recipient (single) / per recipient
         // list (batch), AFTER `to` is merged — otherwise identical content to
         // different recipients hashes to the same key and the platform silently
         // dedupes the later sends.
-        $override = $this->header($email, MailerHeaders::IDEMPOTENCY_KEY);
+        $override = $this->header($email, RecadoHeaders::IDEMPOTENCY_KEY);
 
         if (count($recipients) === 1) {
             $this->sendSingle($recipients[0], $base, $override);
@@ -102,7 +102,7 @@ final class MailerTransport extends AbstractTransport
 
     public function __toString(): string
     {
-        return 'mailer';
+        return 'recado';
     }
 
     /**
@@ -146,7 +146,7 @@ final class MailerTransport extends AbstractTransport
         } catch (ValidationException $e) {
             if ($e->getErrorCode() === self::SUPPRESSED_CODE) {
                 $this->transportLogger?->warning(
-                    'Mailer SDK transport: recipient suppressed; skipping.',
+                    'Recado SDK transport: recipient suppressed; skipping.',
                     ['recipient' => $recipient],
                 );
 
@@ -156,13 +156,13 @@ final class MailerTransport extends AbstractTransport
             }
 
             throw new TransportException(
-                'Mailer platform rejected the send for '.$recipient.': '.$e->getMessage(),
+                'Recado platform rejected the send for '.$recipient.': '.$e->getMessage(),
                 0,
                 $e,
             );
-        } catch (MailerException $e) {
+        } catch (RecadoException $e) {
             throw new TransportException(
-                'Mailer platform send failed for '.$recipient.': '.$e->getMessage(),
+                'Recado platform send failed for '.$recipient.': '.$e->getMessage(),
                 0,
                 $e,
             );
@@ -173,7 +173,7 @@ final class MailerTransport extends AbstractTransport
      * Per-recipient single-send fan-out for messages /send/batch cannot carry
      * (attachments). Each send computes its own per-recipient idempotency key
      * inside {@see sendSingle()}, so a requeued job still dedupes per
-     * recipient. An explicit X-Mailer-Idempotency-Key override is derived per
+     * recipient. An explicit X-Recado-Idempotency-Key override is derived per
      * recipient (`{override}:{sha1(recipient) prefix}`) — reusing it verbatim
      * would make the platform silently dedupe every recipient after the first.
      *
@@ -212,9 +212,9 @@ final class MailerTransport extends AbstractTransport
 
         try {
             $result = $this->client->send()->batch($messages, $key);
-        } catch (MailerException $e) {
+        } catch (RecadoException $e) {
             throw new TransportException(
-                'Mailer platform batch send failed: '.$e->getMessage(),
+                'Recado platform batch send failed: '.$e->getMessage(),
                 0,
                 $e,
             );
@@ -239,7 +239,7 @@ final class MailerTransport extends AbstractTransport
 
             if ($item->status === 'suppressed') {
                 $this->transportLogger?->warning(
-                    'Mailer SDK transport: recipient suppressed in batch; skipping.',
+                    'Recado SDK transport: recipient suppressed in batch; skipping.',
                     ['recipient' => $recipient],
                 );
 
@@ -256,7 +256,7 @@ final class MailerTransport extends AbstractTransport
 
         if ($failures !== []) {
             throw new TransportException(
-                'Mailer platform batch send failed for: '.implode(', ', $failures).'.',
+                'Recado platform batch send failed for: '.implode(', ', $failures).'.',
             );
         }
     }

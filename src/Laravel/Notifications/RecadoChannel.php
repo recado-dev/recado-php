@@ -2,32 +2,32 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Laravel\Notifications;
+namespace Recado\Sdk\Laravel\Notifications;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Mail\Mailable;
 use Illuminate\Notifications\Notification;
-use Mailer\Sdk\Exception\ValidationException;
-use Mailer\Sdk\Laravel\Events\MessageSuppressed;
-use Mailer\Sdk\Laravel\Mail\IdempotencyKey;
-use Mailer\Sdk\Laravel\Mail\MailerMessage;
-use Mailer\Sdk\Laravel\Mail\PayloadMapper;
-use Mailer\Sdk\MailerClient;
+use Recado\Sdk\Exception\ValidationException;
+use Recado\Sdk\Laravel\Events\MessageSuppressed;
+use Recado\Sdk\Laravel\Mail\IdempotencyKey;
+use Recado\Sdk\Laravel\Mail\RecadoMessage;
+use Recado\Sdk\Laravel\Mail\PayloadMapper;
+use Recado\Sdk\RecadoClient;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mime\Email;
 
 /**
- * Laravel notification channel that delivers through the Mailer platform /send
- * API. Registered as the "mailer" channel by the service provider, so a
- * notification's `via()` can return `['mailer']`.
+ * Laravel notification channel that delivers through the Recado platform /send
+ * API. Registered as the "recado" channel by the service provider, so a
+ * notification's `via()` can return `['recado']`.
  *
- * The notification must define `toMailer($notifiable)` returning one of: a
- * {@see MailerMessage} (full control: inline or template sends, explicit
+ * The notification must define `toRecado($notifiable)` returning one of: a
+ * {@see RecadoMessage} (full control: inline or template sends, explicit
  * recipient/idempotency key), an `Illuminate\Contracts\Mail\Mailable` (rendered
  * to subject + HTML only) or a plain `/send` payload array.
  *
- * Recipient routing precedence: an explicit {@see MailerMessage::to()} (or the
- * array's `to`) wins, then `routeNotificationFor('mailer')`, then
+ * Recipient routing precedence: an explicit {@see RecadoMessage::to()} (or the
+ * array's `to`) wins, then `routeNotificationFor('recado')`, then
  * `routeNotificationFor('mail')`, then a public `$email` property on the
  * notifiable.
  *
@@ -36,7 +36,7 @@ use Symfony\Component\Mime\Email;
  * skipped); quota/domain/other SDK errors are rethrown so Laravel marks the
  * notification failed and can retry per its own policy.
  */
-final class MailerChannel
+final class RecadoChannel
 {
     /**
      * Error code that is NOT a failure: the platform refused the recipient but
@@ -45,10 +45,10 @@ final class MailerChannel
     private const SUPPRESSED_CODE = 'recipient_suppressed';
 
     /**
-     * @param array<string, mixed> $mailConfig The `mailer-sdk.mail` config block.
+     * @param array<string, mixed> $mailConfig The `recado-sdk.mail` config block.
      */
     public function __construct(
-        private readonly MailerClient $client,
+        private readonly RecadoClient $client,
         private readonly array $mailConfig = [],
         private readonly ?Dispatcher $events = null,
         private readonly ?LoggerInterface $logger = null,
@@ -60,13 +60,13 @@ final class MailerChannel
      */
     public function send($notifiable, Notification $notification): void
     {
-        if (! method_exists($notification, 'toMailer')) {
+        if (! method_exists($notification, 'toRecado')) {
             throw new \InvalidArgumentException(
-                $notification::class.' must define a toMailer() method to use the "mailer" notification channel.',
+                $notification::class.' must define a toRecado() method to use the "recado" notification channel.',
             );
         }
 
-        $message = $notification->toMailer($notifiable);
+        $message = $notification->toRecado($notifiable);
 
         [$payload, $explicitKey, $explicitTo] = $this->resolveMessage($message);
 
@@ -74,8 +74,8 @@ final class MailerChannel
 
         if ($recipient === null) {
             throw new \InvalidArgumentException(
-                'Could not resolve a recipient for the mailer notification channel. Provide '
-                ."MailerMessage::to(), a routeNotificationFor('mailer'|'mail') method, or a public \$email "
+                'Could not resolve a recipient for the recado notification channel. Provide '
+                ."RecadoMessage::to(), a routeNotificationFor('recado'|'mail') method, or a public \$email "
                 .'property on the notifiable.',
             );
         }
@@ -90,7 +90,7 @@ final class MailerChannel
         } catch (ValidationException $e) {
             if ($e->getErrorCode() === self::SUPPRESSED_CODE) {
                 $this->logger?->warning(
-                    'Mailer SDK notification channel: recipient suppressed; skipping.',
+                    'Recado SDK notification channel: recipient suppressed; skipping.',
                     ['recipient' => $recipient],
                 );
 
@@ -104,12 +104,12 @@ final class MailerChannel
     }
 
     /**
-     * Normalize the toMailer() return value into a content payload (no `to`/key),
+     * Normalize the toRecado() return value into a content payload (no `to`/key),
      * the explicit idempotency key and the explicit recipient.
      *
      * A Mailable is rendered to its HTML body + subject only; attachments,
      * text-only Mailables and template headers set via withSymfonyMessage() are
-     * not honored through the channel — return a MailerMessage for full control,
+     * not honored through the channel — return a RecadoMessage for full control,
      * or a payload array to pass /send fields (including `attachments`) as-is.
      *
      * @param mixed $message
@@ -118,7 +118,7 @@ final class MailerChannel
      */
     private function resolveMessage($message): array
     {
-        if ($message instanceof MailerMessage) {
+        if ($message instanceof RecadoMessage) {
             return [$message->toArray(), $message->explicitKey(), $message->recipient()];
         }
 
@@ -148,13 +148,13 @@ final class MailerChannel
         }
 
         throw new \InvalidArgumentException(
-            'Unsupported toMailer() return type ['.get_debug_type($message).']. Return a '
-            .MailerMessage::class.', an Illuminate\\Contracts\\Mail\\Mailable, or a /send payload array.',
+            'Unsupported toRecado() return type ['.get_debug_type($message).']. Return a '
+            .RecadoMessage::class.', an Illuminate\\Contracts\\Mail\\Mailable, or a /send payload array.',
         );
     }
 
     /**
-     * Resolve the recipient by precedence: explicit, then the mailer route, then
+     * Resolve the recipient by precedence: explicit, then the recado route, then
      * the mail route, then a public $email property on the notifiable.
      *
      * @param mixed $notifiable
@@ -169,7 +169,7 @@ final class MailerChannel
         }
 
         if (method_exists($notifiable, 'routeNotificationFor')) {
-            $recipient = $this->firstEmail($notifiable->routeNotificationFor('mailer', $notification));
+            $recipient = $this->firstEmail($notifiable->routeNotificationFor('recado', $notification));
 
             if ($recipient !== null) {
                 return $recipient;

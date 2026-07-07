@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests;
+namespace Recado\Sdk\Tests;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;
@@ -10,21 +10,21 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Request;
-use Mailer\Sdk\Exception\MailerException;
-use Mailer\Sdk\Http\RetryMiddleware;
-use Mailer\Sdk\MailerClient;
+use Recado\Sdk\Exception\RecadoException;
+use Recado\Sdk\Http\RetryMiddleware;
+use Recado\Sdk\RecadoClient;
 
 final class RetryTest extends TestCase
 {
     /**
-     * Build a MailerClient whose transport replays the queued responses through
+     * Build a RecadoClient whose transport replays the queued responses through
      * a handler stack carrying the retry middleware, capturing every attempt.
      *
      * @param array<int, mixed>   $responses
      * @param array<string, mixed> $config
      * @param array<int, mixed>   $history
      */
-    private function clientWithRetry(array $responses, array $config, array &$history): MailerClient
+    private function clientWithRetry(array $responses, array $config, array &$history): RecadoClient
     {
         $mock = new MockHandler($responses);
         $stack = HandlerStack::create($mock);
@@ -33,7 +33,7 @@ final class RetryTest extends TestCase
 
         $guzzle = new Client(['handler' => $stack]);
 
-        return new MailerClient($this->baseUrl, $this->token, $guzzle);
+        return new RecadoClient($this->baseUrl, $this->token, $guzzle);
     }
 
     public function test_5xx_then_200_succeeds_after_retry(): void
@@ -75,8 +75,8 @@ final class RetryTest extends TestCase
 
         try {
             $client->lists()->list();
-            $this->fail('Expected MailerException after exhausting retries.');
-        } catch (MailerException $e) {
+            $this->fail('Expected RecadoException after exhausting retries.');
+        } catch (RecadoException $e) {
             $this->assertSame(500, $e->getStatus());
         }
 
@@ -94,7 +94,7 @@ final class RetryTest extends TestCase
         try {
             $client->send()->email(['to' => 'jane@example.com', 'template' => 'welcome']);
             $this->fail('Expected the 503 to surface without a retry.');
-        } catch (MailerException $e) {
+        } catch (RecadoException $e) {
             $this->assertSame(503, $e->getStatus());
         }
 

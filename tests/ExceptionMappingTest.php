@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests;
+namespace Recado\Sdk\Tests;
 
-use Mailer\Sdk\Exception\AuthenticationException;
-use Mailer\Sdk\Exception\NotFoundException;
-use Mailer\Sdk\Exception\RateLimitException;
-use Mailer\Sdk\Exception\ValidationException;
+use Recado\Sdk\Exception\AuthenticationException;
+use Recado\Sdk\Exception\NotFoundException;
+use Recado\Sdk\Exception\RateLimitException;
+use Recado\Sdk\Exception\ValidationException;
 
 final class ExceptionMappingTest extends TestCase
 {

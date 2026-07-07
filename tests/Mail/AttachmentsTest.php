@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests\Mail;
+namespace Recado\Sdk\Tests\Mail;
 
-use Mailer\Sdk\Exception\AttachmentsTooLargeException;
-use Mailer\Sdk\Exception\UnsupportedFeatureException;
-use Mailer\Sdk\Laravel\Mail\MailerHeaders;
-use Mailer\Sdk\Laravel\Mail\MailerTransport;
-use Mailer\Sdk\Laravel\Mail\PayloadMapper;
-use Mailer\Sdk\MailerClient;
-use Mailer\Sdk\Tests\Mail\Support\SpyLogger;
-use Mailer\Sdk\Tests\TestCase;
+use Recado\Sdk\Exception\AttachmentsTooLargeException;
+use Recado\Sdk\Exception\UnsupportedFeatureException;
+use Recado\Sdk\Laravel\Mail\RecadoHeaders;
+use Recado\Sdk\Laravel\Mail\RecadoTransport;
+use Recado\Sdk\Laravel\Mail\PayloadMapper;
+use Recado\Sdk\RecadoClient;
+use Recado\Sdk\Tests\Mail\Support\SpyLogger;
+use Recado\Sdk\Tests\TestCase;
 use Psr\Http\Message\RequestInterface;
 use Symfony\Component\Mime\Email;
 
@@ -71,7 +71,7 @@ final class AttachmentsTest extends TestCase
     {
         $email = $this->email()->subject('ignored')->html('<p>ignored</p>')
             ->attach('bytes', 'terms.pdf', 'application/pdf');
-        $email->getHeaders()->addTextHeader(MailerHeaders::TEMPLATE, 'welcome');
+        $email->getHeaders()->addTextHeader(RecadoHeaders::TEMPLATE, 'welcome');
 
         $payload = PayloadMapper::base($email, []);
 
@@ -188,7 +188,7 @@ final class AttachmentsTest extends TestCase
             ->subject('S')
             ->html('<p>x</p>')
             ->attach('bytes', 'f.txt', 'text/plain');
-        $email->getHeaders()->addTextHeader(MailerHeaders::IDEMPOTENCY_KEY, 'order-42');
+        $email->getHeaders()->addTextHeader(RecadoHeaders::IDEMPOTENCY_KEY, 'order-42');
 
         $transport->send($email);
 
@@ -244,9 +244,9 @@ final class AttachmentsTest extends TestCase
     /**
      * @param array<string, mixed> $mailConfig
      */
-    private function transport(MailerClient $client, array $mailConfig = []): MailerTransport
+    private function transport(RecadoClient $client, array $mailConfig = []): RecadoTransport
     {
-        return new MailerTransport($client, $mailConfig);
+        return new RecadoTransport($client, $mailConfig);
     }
 
     /**

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests;
+namespace Recado\Sdk\Tests;
 
-use Mailer\Sdk\Exception\NotFoundException;
+use Recado\Sdk\Exception\NotFoundException;
 
 final class PushTokensTest extends TestCase
 {

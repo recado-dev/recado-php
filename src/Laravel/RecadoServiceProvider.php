@@ -2,32 +2,32 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Laravel;
+namespace Recado\Sdk\Laravel;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Notifications\ChannelManager;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
-use Mailer\Sdk\Laravel\Mail\MailerTransport;
-use Mailer\Sdk\Laravel\Notifications\MailerChannel;
-use Mailer\Sdk\MailerClient;
+use Recado\Sdk\Laravel\Mail\RecadoTransport;
+use Recado\Sdk\Laravel\Notifications\RecadoChannel;
+use Recado\Sdk\RecadoClient;
 
 /**
  * Laravel package service provider. Auto-discovered via composer's
  * extra.laravel.providers; this class is only ever loaded inside a Laravel
  * application, so the SDK itself stays usable in plain PHP without illuminate.
  */
-final class MailerServiceProvider extends ServiceProvider
+final class RecadoServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../../config/mailer-sdk.php', 'mailer-sdk');
+        $this->mergeConfigFrom(__DIR__.'/../../config/recado-sdk.php', 'recado-sdk');
 
-        $this->app->singleton(MailerClient::class, function ($app): MailerClient {
+        $this->app->singleton(RecadoClient::class, function ($app): RecadoClient {
             /** @var array<string, mixed> $config */
-            $config = $app['config']->get('mailer-sdk', []);
+            $config = $app['config']->get('recado-sdk', []);
 
-            return new MailerClient(
+            return new RecadoClient(
                 (string) ($config['base_url'] ?? ''),
                 (string) ($config['token'] ?? ''),
                 null,
@@ -45,8 +45,8 @@ final class MailerServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__.'/../../config/mailer-sdk.php' => $this->app->configPath('mailer-sdk.php'),
-            ], 'mailer-sdk-config');
+                __DIR__.'/../../config/recado-sdk.php' => $this->app->configPath('recado-sdk.php'),
+            ], 'recado-sdk-config');
         }
 
         $this->registerMailTransport();
@@ -54,9 +54,9 @@ final class MailerServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register the "mailer" mail driver so an app can route Laravel's Mail
-     * facade through the platform /send API with MAIL_MAILER=mailer plus a
-     * config/mail.php entry: 'mailer' => ['transport' => 'mailer'].
+     * Register the "recado" mail driver so an app can route Laravel's Mail
+     * facade through the platform /send API with MAIL_MAILER=recado plus a
+     * config/mail.php entry: 'recado' => ['transport' => 'recado'].
      */
     private function registerMailTransport(): void
     {
@@ -64,10 +64,10 @@ final class MailerServiceProvider extends ServiceProvider
             return;
         }
 
-        Mail::extend('mailer', function (array $config): MailerTransport {
-            return new MailerTransport(
-                $this->app->make(MailerClient::class),
-                (array) $this->app['config']->get('mailer-sdk.mail', []),
+        Mail::extend('recado', function (array $config): RecadoTransport {
+            return new RecadoTransport(
+                $this->app->make(RecadoClient::class),
+                (array) $this->app['config']->get('recado-sdk.mail', []),
                 $this->app->make(Dispatcher::class),
                 $this->app->make('log'),
             );
@@ -75,8 +75,8 @@ final class MailerServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register the "mailer" notification channel so a Notification's via() can
-     * return ['mailer'] and deliver through the platform /send API.
+     * Register the "recado" notification channel so a Notification's via() can
+     * return ['recado'] and deliver through the platform /send API.
      */
     private function registerNotificationChannel(): void
     {
@@ -85,10 +85,10 @@ final class MailerServiceProvider extends ServiceProvider
         }
 
         $this->app->resolving(ChannelManager::class, function (ChannelManager $manager): void {
-            $manager->extend('mailer', function ($app): MailerChannel {
-                return new MailerChannel(
-                    $app->make(MailerClient::class),
-                    (array) $app['config']->get('mailer-sdk.mail', []),
+            $manager->extend('recado', function ($app): RecadoChannel {
+                return new RecadoChannel(
+                    $app->make(RecadoClient::class),
+                    (array) $app['config']->get('recado-sdk.mail', []),
                     $app->make(Dispatcher::class),
                     $app->make('log'),
                 );

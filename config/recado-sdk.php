@@ -8,16 +8,17 @@ return [
     | Base URL
     |--------------------------------------------------------------------------
     |
-    | The fully qualified base URL of the Mailer REST API v1, including the
+    | The fully qualified base URL of the Recado REST API v1, including the
     | "/api/v1" suffix. A trailing slash is allowed and stripped internally.
     |
     | Optional for hosted users: it defaults to the hosted API, so you only
-    | need to set MAILER_API_TOKEN. Self-hosted users set MAILER_BASE_URL to
-    | their own endpoint. An explicitly empty or placeholder value still makes
-    | the MailerClient throw a MailerConfigurationException at construction.
+    | need to set RECADO_API_TOKEN. Self-hosted users set RECADO_BASE_URL to
+    | their own endpoint. An explicitly empty or placeholder value — or the
+    | decommissioned pre-rebrand mailer.mosaiqo.com host — still makes the
+    | RecadoClient throw a RecadoConfigurationException at construction.
     |
     */
-    'base_url' => env('MAILER_BASE_URL', \Mailer\Sdk\MailerClient::DEFAULT_BASE_URL),
+    'base_url' => env('RECADO_BASE_URL', \Recado\Sdk\RecadoClient::DEFAULT_BASE_URL),
 
     /*
     |--------------------------------------------------------------------------
@@ -28,7 +29,7 @@ return [
     | token on every request.
     |
     */
-    'token' => env('MAILER_API_TOKEN'),
+    'token' => env('RECADO_API_TOKEN'),
 
     /*
     |--------------------------------------------------------------------------
@@ -41,17 +42,17 @@ return [
     | apply to requests that are safe to repeat (see the SDK README).
     |
     */
-    'timeout' => (int) env('MAILER_TIMEOUT', 10),
-    'retries' => (int) env('MAILER_RETRIES', 2),
-    'retry_base_delay' => (int) env('MAILER_RETRY_BASE_DELAY', 200),
-    'retry_max_delay' => (int) env('MAILER_RETRY_MAX_DELAY', 5000),
+    'timeout' => (int) env('RECADO_TIMEOUT', 10),
+    'retries' => (int) env('RECADO_RETRIES', 2),
+    'retry_base_delay' => (int) env('RECADO_RETRY_BASE_DELAY', 200),
+    'retry_max_delay' => (int) env('RECADO_RETRY_MAX_DELAY', 5000),
 
     /*
     |--------------------------------------------------------------------------
-    | Mail transport (MAIL_MAILER=mailer)
+    | Mail transport (MAIL_MAILER=recado)
     |--------------------------------------------------------------------------
     |
-    | Behavior of the "mailer" Laravel mail driver registered by this package.
+    | Behavior of the "recado" Laravel mail driver registered by this package.
     |
     | attachments: how to handle a message that carries attachments.
     |     'send'   — (default) map them onto the /send `attachments` field
@@ -66,7 +67,7 @@ return [
     |     'ignore' — log a warning and send the message without the attachments.
     |
     | idempotency: how the per-send Idempotency-Key is derived (a message can
-    |   still override it with the X-Mailer-Idempotency-Key header).
+    |   still override it with the X-Recado-Idempotency-Key header).
     |     'content' — deterministic hash of the content, so a queue retry of the
     |                 same job never duplicates the send.
     |     'random'  — a fresh UUID per send attempt (disables retry dedup).
@@ -74,7 +75,7 @@ return [
     |
     */
     'mail' => [
-        'attachments' => env('MAILER_MAIL_ATTACHMENTS', 'send'),
-        'idempotency' => env('MAILER_MAIL_IDEMPOTENCY', 'content'),
+        'attachments' => env('RECADO_MAIL_ATTACHMENTS', 'send'),
+        'idempotency' => env('RECADO_MAIL_IDEMPOTENCY', 'content'),
     ],
 ];

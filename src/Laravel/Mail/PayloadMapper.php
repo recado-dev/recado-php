@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Laravel\Mail;
+namespace Recado\Sdk\Laravel\Mail;
 
-use Mailer\Sdk\Exception\AttachmentsTooLargeException;
-use Mailer\Sdk\Exception\UnsupportedFeatureException;
+use Recado\Sdk\Exception\AttachmentsTooLargeException;
+use Recado\Sdk\Exception\UnsupportedFeatureException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\MimeTypes;
@@ -13,10 +13,10 @@ use Symfony\Component\Mime\Part\DataPart;
 
 /**
  * Maps a Symfony Email into the platform /send content payload. Either a
- * template payload (when the X-Mailer-Template header is present) or an inline
+ * template payload (when the X-Recado-Template header is present) or an inline
  * subject/body one; in both cases the message's attachments are mapped to the
  * /send `attachments` field per the configured mode (see
- * `mailer-sdk.mail.attachments`: 'send' maps them, 'ignore' drops them with a
+ * `recado-sdk.mail.attachments`: 'send' maps them, 'ignore' drops them with a
  * PSR-3 warning, 'fail' throws). An optional PSR-3 logger receives the
  * attachment-ignore warning and the From-set debug log.
  */
@@ -49,7 +49,7 @@ final class PayloadMapper
         $attachments = self::attachments($email, $mailConfig, $logger);
         self::warnIfFromIsSet($email, $logger);
 
-        $template = self::header($email, MailerHeaders::TEMPLATE);
+        $template = self::header($email, RecadoHeaders::TEMPLATE);
 
         if ($template !== null) {
             $payload = [
@@ -126,7 +126,7 @@ final class PayloadMapper
 
         if ($mode === 'ignore') {
             $logger?->warning(
-                'Mailer SDK transport: dropping attachments — mailer-sdk.mail.attachments is set to "ignore".',
+                'Recado SDK transport: dropping attachments — recado-sdk.mail.attachments is set to "ignore".',
             );
 
             return [];
@@ -134,7 +134,7 @@ final class PayloadMapper
 
         if ($mode === 'fail') {
             throw new UnsupportedFeatureException(
-                'Attachment sending is disabled (mailer-sdk.mail.attachments = "fail"). '
+                'Attachment sending is disabled (recado-sdk.mail.attachments = "fail"). '
                 .'Remove the attachment from the Mailable, or set the mode to "send" to map it '
                 .'onto the /send attachments field (or "ignore" to send the message without it).',
             );
@@ -201,20 +201,20 @@ final class PayloadMapper
     {
         if ($email->getFrom() !== []) {
             $logger?->debug(
-                'Mailer SDK transport: ignoring the message From address; the platform uses the '
+                'Recado SDK transport: ignoring the message From address; the platform uses the '
                 ."project's configured sender.",
             );
         }
     }
 
     /**
-     * Decode the X-Mailer-Variables JSON header into an associative array.
+     * Decode the X-Recado-Variables JSON header into an associative array.
      *
      * @return array<string, mixed>
      */
     private static function variables(Email $email): array
     {
-        $raw = self::header($email, MailerHeaders::VARIABLES);
+        $raw = self::header($email, RecadoHeaders::VARIABLES);
 
         if ($raw === null || $raw === '') {
             return [];

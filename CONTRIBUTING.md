@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in `mosaiqo/mailer-php`! 🙌
+Thanks for your interest in `recado/recado-php`! 🙌
 
 ## How this repo works
 
@@ -23,7 +23,7 @@ into the private source, which then flows back out to this mirror automatically.
 
 When filing an issue, the usual helpers go a long way:
 
-- the SDK version (or `composer show mosaiqo/mailer-php`) and your PHP version,
+- the SDK version (or `composer show recado/recado-php`) and your PHP version,
 - a minimal reproduction or the exact call you made,
 - what you expected vs. what happened (including any exception `code`/message).
 

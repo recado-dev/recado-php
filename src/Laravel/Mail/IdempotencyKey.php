@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Laravel\Mail;
+namespace Recado\Sdk\Laravel\Mail;
 
 use Illuminate\Support\Str;
 
 /**
  * Resolves the idempotency key for a transactional send. An explicit override
- * always wins (the X-Mailer-Idempotency-Key header on the transport, or
- * {@see MailerMessage::idempotencyKey()} on the notification channel);
+ * always wins (the X-Recado-Idempotency-Key header on the transport, or
+ * {@see RecadoMessage::idempotencyKey()} on the notification channel);
  * otherwise the configured strategy decides:
  *
  *   - `content` (default): a deterministic hash of the canonical payload, so a
@@ -28,7 +28,7 @@ final class IdempotencyKey
      *                                          shared across a batch. Content
      *                                          without any `to` would collide
      *                                          across recipients — always pass it.
-     * @param array<string, mixed> $mailConfig The `mailer-sdk.mail` config block.
+     * @param array<string, mixed> $mailConfig The `recado-sdk.mail` config block.
      */
     public static function compute(array $payload, array $mailConfig, ?string $override = null): ?string
     {

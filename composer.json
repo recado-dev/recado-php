@@ -1,19 +1,19 @@
 {
-    "name": "mosaiqo/mailer-php",
-    "description": "Official PHP SDK for the Mailer REST API v1.",
+    "name": "recado/recado-php",
+    "description": "Official PHP SDK for the Recado REST API v1.",
     "type": "library",
     "license": "MIT",
-    "homepage": "https://github.com/mosaiqo/mailer-php",
+    "homepage": "https://github.com/recado-dev/recado-php",
     "keywords": [
-        "mailer",
+        "recado",
         "email",
         "sdk",
         "api",
         "transactional"
     ],
     "support": {
-        "issues": "https://github.com/mosaiqo/mailer-php/issues",
-        "source": "https://github.com/mosaiqo/mailer-php"
+        "issues": "https://github.com/recado-dev/recado-php/issues",
+        "source": "https://github.com/recado-dev/recado-php"
     },
     "require": {
         "php": ">=8.3",
@@ -33,21 +33,21 @@
     },
     "autoload": {
         "psr-4": {
-            "Mailer\\Sdk\\": "src/"
+            "Recado\\Sdk\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Mailer\\Sdk\\Tests\\": "tests/"
+            "Recado\\Sdk\\Tests\\": "tests/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Mailer\\Sdk\\Laravel\\MailerServiceProvider"
+                "Recado\\Sdk\\Laravel\\RecadoServiceProvider"
             ],
             "aliases": {
-                "Mailer": "Mailer\\Sdk\\Laravel\\Facades\\Mailer"
+                "Recado": "Recado\\Sdk\\Laravel\\Facades\\Recado"
             }
         }
     },

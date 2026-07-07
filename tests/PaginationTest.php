@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests;
+namespace Recado\Sdk\Tests;
 
-use Mailer\Sdk\Dto\Contact;
+use Recado\Sdk\Dto\Contact;
 
 final class PaginationTest extends TestCase
 {

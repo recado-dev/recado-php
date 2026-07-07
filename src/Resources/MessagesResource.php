@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Resources;
+namespace Recado\Sdk\Resources;
 
-use Mailer\Sdk\Dto\Message;
-use Mailer\Sdk\Dto\Paginated;
-use Mailer\Sdk\Http\HttpClient;
-use Mailer\Sdk\Resources\Concerns\PaginatesResults;
+use Recado\Sdk\Dto\Message;
+use Recado\Sdk\Dto\Paginated;
+use Recado\Sdk\Http\HttpClient;
+use Recado\Sdk\Resources\Concerns\PaginatesResults;
 
 /**
  * The Messages resource (read-only).

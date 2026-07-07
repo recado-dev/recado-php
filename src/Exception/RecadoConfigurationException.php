@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Exception;
+namespace Recado\Sdk\Exception;
 
 /**
  * Thrown when the SDK is constructed with missing or placeholder configuration
@@ -10,4 +10,4 @@ namespace Mailer\Sdk\Exception;
  * local failure raised before any HTTP request, so a misconfigured consumer
  * fails loudly at construction instead of silently sending to a dead host.
  */
-class MailerConfigurationException extends MailerException {}
+class RecadoConfigurationException extends RecadoException {}

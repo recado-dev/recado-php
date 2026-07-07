@@ -1,11 +1,62 @@
 # Changelog
 
-All notable changes to `mosaiqo/mailer-php` are documented in this file.
+All notable changes to `recado/recado-php` (formerly `mosaiqo/mailer-php`,
+through v1.4.0) are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0] - 2026-07-07
+
+First release under the **Recado** brand. **NO functional changes vs 1.4.0** —
+the same code and tests, renamed. Everything brand-carrying is breaking:
+
+### Changed (BREAKING)
+
+- **Package renamed** from `mosaiqo/mailer-php` to **`recado/recado-php`**
+  (`mosaiqo/mailer-php` is abandoned on Packagist with this package as the
+  recommended replacement; v1.4.0 is its final release).
+- **Namespace**: `Mailer\Sdk\*` → **`Recado\Sdk\*`** (all classes).
+- **Classes renamed** (same behavior, new names):
+  - `MailerClient` → `RecadoClient`
+  - `MailerException` → `RecadoException`
+  - `MailerConfigurationException` → `RecadoConfigurationException`
+  - `MailerServiceProvider` → `RecadoServiceProvider`
+  - facade `Mailer` → `Recado` (alias `Recado`)
+  - `MailerTransport` → `RecadoTransport`
+  - `MailerChannel` → `RecadoChannel`
+  - `MailerMessage` → `RecadoMessage`
+  - `MailerHeaders` → `RecadoHeaders`
+  - Brand-neutral exception subclasses (`ValidationException`,
+    `NotFoundException`, `RateLimitException`, `AuthenticationException`,
+    `UnsupportedFeatureException`, `AttachmentsTooLargeException`) keep their
+    names.
+- **Notification contract**: notifications define `toRecado()` (was
+  `toMailer()`); recipient routing reads `routeNotificationFor('recado')`
+  (was `'mailer'`), with the `'mail'` route and `$email` fallbacks unchanged.
+- **Laravel transport/channel string**: `mailer` → **`recado`**
+  (`MAIL_MAILER=recado`; `config/mail.php` entry
+  `'recado' => ['transport' => 'recado']`).
+- **Config**: `config/mailer-sdk.php` → `config/recado-sdk.php`, key
+  `mailer-sdk` → `recado-sdk`, publish tag `mailer-sdk-config` →
+  `recado-sdk-config`.
+- **Env vars**: `MAILER_*` → **`RECADO_*`** (`RECADO_BASE_URL`,
+  `RECADO_API_TOKEN`, `RECADO_TIMEOUT`, `RECADO_RETRIES`,
+  `RECADO_RETRY_BASE_DELAY`, `RECADO_RETRY_MAX_DELAY`,
+  `RECADO_MAIL_ATTACHMENTS`, `RECADO_MAIL_IDEMPOTENCY`).
+- **SDK message headers**: `X-Mailer-Template` / `X-Mailer-Variables` /
+  `X-Mailer-Idempotency-Key` → **`X-Recado-*`** (SDK-internal — consumed and
+  stripped by the transport, they never cross the wire). The brand-neutral
+  `Idempotency-Key` HTTP header sent to the API is unchanged.
+- **Default base URL**: `https://recado.dev/api/v1` (was
+  `https://mailer.mosaiqo.com/api/v1`).
+- **Dead-host guard extended**: a base URL pointing at the decommissioned
+  `mailer.mosaiqo.com` host now throws `RecadoConfigurationException` at
+  construction (that host is being killed with the domain migration — a stale
+  config fails loudly instead of POSTing into the void). The old
+  `api.mailer.test` placeholder is still rejected too.
 
 ## [1.4.0] - 2026-07-05
 
@@ -171,12 +222,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (wrappable in a Laravel `LazyCollection`).
 - Read-only campaigns resource (`campaigns()->list()` / `get()` with stats).
 
-[Unreleased]: https://github.com/mosaiqo/mailer-php/compare/v1.4.0...main
-[1.4.0]: https://github.com/mosaiqo/mailer-php/compare/v1.3.1...v1.4.0
-[1.3.1]: https://github.com/mosaiqo/mailer-php/compare/v1.3.0...v1.3.1
-[1.3.0]: https://github.com/mosaiqo/mailer-php/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/mosaiqo/mailer-php/compare/v1.1.2...v1.2.0
-[1.1.2]: https://github.com/mosaiqo/mailer-php/compare/v1.1.1...v1.1.2
-[1.1.1]: https://github.com/mosaiqo/mailer-php/compare/v1.1.0...v1.1.1
-[1.1.0]: https://github.com/mosaiqo/mailer-php/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/mosaiqo/mailer-php/releases/tag/v1.0.0
+[Unreleased]: https://github.com/recado-dev/recado-php/compare/v2.0.0...main
+[2.0.0]: https://github.com/recado-dev/recado-php/compare/v1.4.0...v2.0.0
+[1.4.0]: https://github.com/recado-dev/recado-php/compare/v1.3.1...v1.4.0
+[1.3.1]: https://github.com/recado-dev/recado-php/compare/v1.3.0...v1.3.1
+[1.3.0]: https://github.com/recado-dev/recado-php/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/recado-dev/recado-php/compare/v1.1.2...v1.2.0
+[1.1.2]: https://github.com/recado-dev/recado-php/compare/v1.1.1...v1.1.2
+[1.1.1]: https://github.com/recado-dev/recado-php/compare/v1.1.0...v1.1.1
+[1.1.0]: https://github.com/recado-dev/recado-php/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/recado-dev/recado-php/releases/tag/v1.0.0

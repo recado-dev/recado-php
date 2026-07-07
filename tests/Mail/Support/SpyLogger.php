@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests\Mail\Support;
+namespace Recado\Sdk\Tests\Mail\Support;
 
 use Psr\Log\AbstractLogger;
 use Stringable;

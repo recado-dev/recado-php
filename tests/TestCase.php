@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests;
+namespace Recado\Sdk\Tests;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
-use Mailer\Sdk\MailerClient;
+use Recado\Sdk\RecadoClient;
 use PHPUnit\Framework\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -17,7 +17,7 @@ abstract class TestCase extends BaseTestCase
     /**
      * The base URL used by the test client.
      */
-    protected string $baseUrl = 'https://mailer.example.com/api/v1';
+    protected string $baseUrl = 'https://recado.example.com/api/v1';
 
     /**
      * The token used by the test client.
@@ -25,13 +25,13 @@ abstract class TestCase extends BaseTestCase
     protected string $token = 'test-token';
 
     /**
-     * Build a MailerClient whose transport replays the given queued responses,
+     * Build a RecadoClient whose transport replays the given queued responses,
      * and capture every outgoing request into the returned `$history` array.
      *
      * @param array<int, Response> $responses
      * @param array<int, array{request: \Psr\Http\Message\RequestInterface, ...}> $history
      */
-    protected function clientWithResponses(array $responses, array &$history): MailerClient
+    protected function clientWithResponses(array $responses, array &$history): RecadoClient
     {
         $mock = new MockHandler($responses);
         $stack = HandlerStack::create($mock);
@@ -39,7 +39,7 @@ abstract class TestCase extends BaseTestCase
 
         $guzzle = new Client(['handler' => $stack]);
 
-        return new MailerClient($this->baseUrl, $this->token, $guzzle);
+        return new RecadoClient($this->baseUrl, $this->token, $guzzle);
     }
 
     /**

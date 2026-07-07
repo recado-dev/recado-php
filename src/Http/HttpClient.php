@@ -2,16 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Http;
+namespace Recado\Sdk\Http;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\HandlerStack;
-use Mailer\Sdk\Exception\AuthenticationException;
-use Mailer\Sdk\Exception\MailerException;
-use Mailer\Sdk\Exception\NotFoundException;
-use Mailer\Sdk\Exception\RateLimitException;
-use Mailer\Sdk\Exception\ValidationException;
+use Recado\Sdk\Exception\AuthenticationException;
+use Recado\Sdk\Exception\RecadoException;
+use Recado\Sdk\Exception\NotFoundException;
+use Recado\Sdk\Exception\RateLimitException;
+use Recado\Sdk\Exception\ValidationException;
 use Psr\Http\Message\ResponseInterface;
 
 /**
@@ -189,7 +189,7 @@ final class HttpClient
     /**
      * @param array<string, mixed> $body
      */
-    private function mapException(int $status, array $body, ResponseInterface $response): MailerException
+    private function mapException(int $status, array $body, ResponseInterface $response): RecadoException
     {
         $message = isset($body['message']) && is_string($body['message'])
             ? $body['message']
@@ -213,7 +213,7 @@ final class HttpClient
                 $status,
                 $body,
             ),
-            default => new MailerException($message, $code, $status, $body),
+            default => new RecadoException($message, $code, $status, $body),
         };
     }
 

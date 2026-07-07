@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests\Laravel;
+namespace Recado\Sdk\Tests\Laravel;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
@@ -10,14 +10,14 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Support\Facades\Notification;
-use Mailer\Sdk\Laravel\Mail\MailerMessage;
-use Mailer\Sdk\MailerClient;
+use Recado\Sdk\Laravel\Mail\RecadoMessage;
+use Recado\Sdk\RecadoClient;
 use Psr\Http\Message\RequestInterface;
 
 /**
- * End-to-end proof that a Notification with via() => ['mailer'] routes through
- * the service provider's ChannelManager::extend('mailer') registration, the
- * MailerChannel and the container-resolved MailerClient singleton.
+ * End-to-end proof that a Notification with via() => ['recado'] routes through
+ * the service provider's ChannelManager::extend('recado') registration, the
+ * RecadoChannel and the container-resolved RecadoClient singleton.
  */
 final class NotificationChannelWiringTest extends TestCase
 {
@@ -44,12 +44,12 @@ final class NotificationChannelWiringTest extends TestCase
              */
             public function via($notifiable): array
             {
-                return ['mailer'];
+                return ['recado'];
             }
 
-            public function toMailer($notifiable): MailerMessage
+            public function toRecado($notifiable): RecadoMessage
             {
-                return (new MailerMessage)->subject('Hi')->html('<p>Hello</p>');
+                return (new RecadoMessage)->subject('Hi')->html('<p>Hello</p>');
             }
         };
 
@@ -58,11 +58,11 @@ final class NotificationChannelWiringTest extends TestCase
         $this->assertCount(1, $history);
         $request = $history[0]['request'];
         $this->assertSame('POST', $request->getMethod());
-        $this->assertSame('https://mailer.example.com/api/v1/send', (string) $request->getUri());
+        $this->assertSame('https://recado.example.com/api/v1/send', (string) $request->getUri());
     }
 
     /**
-     * Re-bind the container's MailerClient singleton with one backed by a mock
+     * Re-bind the container's RecadoClient singleton with one backed by a mock
      * HTTP handler, so the real channel (built by ChannelManager::extend) uses it.
      *
      * @param array<int, Response> $responses
@@ -76,8 +76,8 @@ final class NotificationChannelWiringTest extends TestCase
         $guzzle = new Client(['handler' => $stack]);
 
         $this->app->instance(
-            MailerClient::class,
-            new MailerClient('https://mailer.example.com/api/v1', 'test-token', $guzzle),
+            RecadoClient::class,
+            new RecadoClient('https://recado.example.com/api/v1', 'test-token', $guzzle),
         );
     }
 }

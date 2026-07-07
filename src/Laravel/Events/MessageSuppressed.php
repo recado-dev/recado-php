@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Laravel\Events;
+namespace Recado\Sdk\Laravel\Events;
 
 /**
  * Dispatched when the platform rejects a recipient because the address is on

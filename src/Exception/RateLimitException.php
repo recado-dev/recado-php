@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Exception;
+namespace Recado\Sdk\Exception;
 
 use Throwable;
 
@@ -10,7 +10,7 @@ use Throwable;
  * Thrown on HTTP 429 responses (rate limit exceeded). Exposes the parsed
  * Retry-After hint in seconds when the server provided one.
  */
-class RateLimitException extends MailerException
+class RateLimitException extends RecadoException
 {
     /**
      * @param array<string, mixed>|null $body The raw decoded response envelope.

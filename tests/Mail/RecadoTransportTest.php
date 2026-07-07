@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests\Mail;
+namespace Recado\Sdk\Tests\Mail;
 
-use Mailer\Sdk\Exception\UnsupportedFeatureException;
-use Mailer\Sdk\Exception\ValidationException;
-use Mailer\Sdk\Laravel\Events\MessageSuppressed;
-use Mailer\Sdk\Laravel\Mail\MailerHeaders;
-use Mailer\Sdk\Laravel\Mail\MailerTransport;
-use Mailer\Sdk\MailerClient;
-use Mailer\Sdk\Tests\Mail\Support\SpyDispatcher;
-use Mailer\Sdk\Tests\Mail\Support\SpyLogger;
-use Mailer\Sdk\Tests\TestCase;
+use Recado\Sdk\Exception\UnsupportedFeatureException;
+use Recado\Sdk\Exception\ValidationException;
+use Recado\Sdk\Laravel\Events\MessageSuppressed;
+use Recado\Sdk\Laravel\Mail\RecadoHeaders;
+use Recado\Sdk\Laravel\Mail\RecadoTransport;
+use Recado\Sdk\RecadoClient;
+use Recado\Sdk\Tests\Mail\Support\SpyDispatcher;
+use Recado\Sdk\Tests\Mail\Support\SpyLogger;
+use Recado\Sdk\Tests\TestCase;
 use Psr\Http\Message\RequestInterface;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Mime\Email;
 
-final class MailerTransportTest extends TestCase
+final class RecadoTransportTest extends TestCase
 {
     public function test_single_recipient_posts_to_send_without_from_or_reply_to(): void
     {
@@ -41,7 +41,7 @@ final class MailerTransportTest extends TestCase
         $this->assertCount(1, $history);
         $request = $history[0]['request'];
         $this->assertSame('POST', $request->getMethod());
-        $this->assertSame('https://mailer.example.com/api/v1/send', (string) $request->getUri());
+        $this->assertSame('https://recado.example.com/api/v1/send', (string) $request->getUri());
 
         $payload = $this->body($history, 0);
         $this->assertSame('jane@example.com', $payload['to']);
@@ -76,7 +76,7 @@ final class MailerTransportTest extends TestCase
 
         $transport->send($email);
 
-        $this->assertSame('https://mailer.example.com/api/v1/send/batch', (string) $history[0]['request']->getUri());
+        $this->assertSame('https://recado.example.com/api/v1/send/batch', (string) $history[0]['request']->getUri());
 
         $payload = $this->body($history, 0);
         $this->assertCount(2, $payload['messages']);
@@ -319,7 +319,7 @@ final class MailerTransportTest extends TestCase
         $transport = $this->transport($client);
 
         $email = $this->email()->to('jane@example.com')->subject('S')->html('<p>x</p>');
-        $email->getHeaders()->addTextHeader(MailerHeaders::IDEMPOTENCY_KEY, 'order-42');
+        $email->getHeaders()->addTextHeader(RecadoHeaders::IDEMPOTENCY_KEY, 'order-42');
 
         $transport->send($email);
 
@@ -357,8 +357,8 @@ final class MailerTransportTest extends TestCase
         $transport = $this->transport($client);
 
         $email = $this->email()->to('jane@example.com')->subject('ignored')->html('<p>ignored</p>');
-        $email->getHeaders()->addTextHeader(MailerHeaders::TEMPLATE, 'welcome');
-        $email->getHeaders()->addTextHeader(MailerHeaders::VARIABLES, (string) json_encode(['first_name' => 'Jane']));
+        $email->getHeaders()->addTextHeader(RecadoHeaders::TEMPLATE, 'welcome');
+        $email->getHeaders()->addTextHeader(RecadoHeaders::VARIABLES, (string) json_encode(['first_name' => 'Jane']));
 
         $transport->send($email);
 
@@ -383,12 +383,12 @@ final class MailerTransportTest extends TestCase
      * @param array<string, mixed> $mailConfig
      */
     private function transport(
-        MailerClient $client,
+        RecadoClient $client,
         array $mailConfig = [],
         ?SpyDispatcher $events = null,
         ?SpyLogger $logger = null,
-    ): MailerTransport {
-        return new MailerTransport($client, $mailConfig, $events, $logger);
+    ): RecadoTransport {
+        return new RecadoTransport($client, $mailConfig, $events, $logger);
     }
 
     /**

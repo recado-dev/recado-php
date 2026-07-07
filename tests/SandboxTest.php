@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests;
+namespace Recado\Sdk\Tests;
 
-use Mailer\Sdk\Exception\NotFoundException;
-use Mailer\Sdk\Exception\ValidationException;
-use Mailer\Sdk\Resources\SandboxResource;
+use Recado\Sdk\Exception\NotFoundException;
+use Recado\Sdk\Exception\ValidationException;
+use Recado\Sdk\Resources\SandboxResource;
 
 final class SandboxTest extends TestCase
 {

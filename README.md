@@ -1,6 +1,6 @@
-# Mailer PHP SDK
+# Recado PHP SDK
 
-Official PHP SDK for the **Mailer** REST API v1. It wraps the transactional
+Official PHP SDK for the **Recado** REST API v1. It wraps the transactional
 send, contacts, lists, tags, templates, messages and campaigns endpoints behind
 typed resources and readonly DTOs, with first-class error handling and
 idempotency support — plus an optional, batteries-included Laravel integration.
@@ -16,14 +16,14 @@ idempotency support — plus an optional, batteries-included Laravel integration
 
 ## Features
 
-- Typed resources + readonly DTOs over the full Mailer API v1 surface (send,
+- Typed resources + readonly DTOs over the full Recado API v1 surface (send,
   contacts, lists, tags, templates, messages, read-only campaigns).
 - A precise exception hierarchy with machine `code` branching.
 - Automatic, idempotency-safe retries with exponential backoff.
 - Lazy pagination via `cursor()` generators (no page bookkeeping).
 - Per-send idempotency keys to make retries duplicate-free.
-- Optional Laravel integration (auto-discovered): a `mailer` mail transport, a
-  `mailer` notification channel and a `Mailer` facade.
+- Optional Laravel integration (auto-discovered): a `recado` mail transport, a
+  `recado` notification channel and a `Recado` facade.
 - Zero required dependencies beyond Guzzle; the core works in plain PHP without
   any Illuminate package installed.
 
@@ -38,16 +38,26 @@ idempotency support — plus an optional, batteries-included Laravel integration
 ## Installation
 
 The package is published on
-[Packagist](https://packagist.org/packages/mosaiqo/mailer-php) — require it
+[Packagist](https://packagist.org/packages/recado/recado-php) — require it
 directly with Composer, no repository entry or Git/SSH access needed:
 
 ```bash
-composer require mosaiqo/mailer-php:^1.2
+composer require recado/recado-php:^2.0
 ```
+
+> **Migrating from `mosaiqo/mailer-php` (v1.x)?** v2.0.0 is the same SDK under
+> the new brand — no functional changes, but every brand-carrying name was
+> renamed: package `mosaiqo/mailer-php` → `recado/recado-php`, namespace
+> `Mailer\Sdk` → `Recado\Sdk`, classes `Mailer*` → `Recado*` (client, facade,
+> service provider, transport, channel, message, headers, exceptions),
+> `toMailer()` → `toRecado()`, env vars `MAILER_*` → `RECADO_*`, config
+> `mailer-sdk` → `recado-sdk`, transport/channel string `mailer` → `recado`,
+> and message headers `X-Mailer-*` → `X-Recado-*`. See the
+> [CHANGELOG](CHANGELOG.md) for the full matrix.
 
 ### Path repository (monorepo development)
 
-When developing inside the Mailer monorepo, point Composer at the package
+When developing inside the Recado monorepo, point Composer at the package
 directory with a **path repository**:
 
 ```json
@@ -56,53 +66,53 @@ directory with a **path repository**:
         { "type": "path", "url": "sdk/php" }
     ],
     "require": {
-        "mosaiqo/mailer-php": "*"
+        "recado/recado-php": "*"
     }
 }
 ```
 
 ```bash
-composer require mosaiqo/mailer-php
+composer require recado/recado-php
 ```
 
 ## Quick start: integrate into a Laravel app
 
 The full, copy-pasteable recipe to route a real Laravel app's email through a
-mailer-app instance. (Detailed behavior and options are documented further
+Recado instance. (Detailed behavior and options are documented further
 down.)
 
 **1. Require the package** (published on Packagist):
 
 ```bash
-composer require mosaiqo/mailer-php:^1.2
+composer require recado/recado-php:^2.0
 ```
 
 **2. Set the environment variables.**
 
 ```dotenv
 # Route Laravel's Mail facade through the platform /send API
-MAIL_MAILER=mailer
+MAIL_MAILER=recado
 
-# Connection. MAILER_API_TOKEN is REQUIRED (a missing/empty token throws a
-# MailerConfigurationException at boot). MAILER_BASE_URL is OPTIONAL — it
-# defaults to the hosted API (https://mailer.mosaiqo.com/api/v1); set it only
+# Connection. RECADO_API_TOKEN is REQUIRED (a missing/empty token throws a
+# RecadoConfigurationException at boot). RECADO_BASE_URL is OPTIONAL — it
+# defaults to the hosted API (https://recado.dev/api/v1); set it only
 # if you self-host or point at another environment.
-MAILER_API_TOKEN=<your-project-API-key>
-# MAILER_BASE_URL=https://your-self-hosted-host/api/v1
+RECADO_API_TOKEN=<your-project-API-key>
+# RECADO_BASE_URL=https://your-self-hosted-host/api/v1
 ```
 
-> **Where to get the API key.** In mailer-app, open **Settings → API keys** for
+> **Where to get the API key.** In Recado, open **Settings → API keys** for
 > the project you want to send from and create a key (it is shown once — copy it
-> straight into `MAILER_API_TOKEN`). Keys are **per project**, so the key also
+> straight into `RECADO_API_TOKEN`). Keys are **per project**, so the key also
 > selects which project's sender, templates and contacts the sends use.
 
-**3. Add the `mailer` mailer to `config/mail.php`.**
+**3. Add the `recado` mailer to `config/mail.php`.**
 
 ```php
 'mailers' => [
     // ...existing mailers...
-    'mailer' => [
-        'transport' => 'mailer',
+    'recado' => [
+        'transport' => 'recado',
     ],
 ],
 ```
@@ -113,7 +123,7 @@ MAILER_API_TOKEN=<your-project-API-key>
 use App\Mail\WelcomeMail;
 use Illuminate\Support\Facades\Mail;
 
-// A Mailable through the transport (MAIL_MAILER=mailer)
+// A Mailable through the transport (MAIL_MAILER=recado)
 Mail::to('jane@example.com')->send(new WelcomeMail($user));
 
 // A plain message
@@ -124,16 +134,16 @@ Or call the API client directly — e.g. to render a stored template by slug wit
 per-recipient variables:
 
 ```php
-use Mailer\Sdk\Laravel\Facades\Mailer;
+use Recado\Sdk\Laravel\Facades\Recado;
 
-Mailer::send()->email([
+Recado::send()->email([
     'to' => 'jane@example.com',
-    'template' => 'welcome',           // template slug from mailer-app
+    'template' => 'welcome',           // template slug from Recado
     'variables' => ['first_name' => 'Jane'],
 ]);
 
 // ...or fully inline content
-Mailer::send()->email([
+Recado::send()->email([
     'to' => 'jane@example.com',
     'subject' => 'Welcome aboard',
     'body' => '<p>Hi {{ contact.first_name }}!</p>',
@@ -147,9 +157,9 @@ surface and the transport's detailed behavior.
 ## Plain PHP usage
 
 ```php
-use Mailer\Sdk\MailerClient;
+use Recado\Sdk\RecadoClient;
 
-$client = new MailerClient(
+$client = new RecadoClient(
     baseUrl: 'https://app.example.com/api/v1',
     token: 'your-project-api-key',
 );
@@ -285,7 +295,7 @@ past the cap). Removing a token from an unknown contact raises a
 `Idempotency-Key` header. Re-sending with the same key returns the original
 result instead of creating a duplicate. While the first request is still in
 flight a concurrent retry with the same key gets a `409` — surfaced as a base
-`MailerException` with code `idempotency_conflict`; an empty or over-long key is
+`RecadoException` with code `idempotency_conflict`; an empty or over-long key is
 rejected with a `422` `ValidationException` (code `invalid_idempotency_key`).
 
 ```php
@@ -414,7 +424,7 @@ backoff.
 Tune it through the optional `options` argument (4th constructor parameter):
 
 ```php
-$client = new MailerClient(
+$client = new RecadoClient(
     baseUrl: 'https://app.example.com/api/v1',
     token: 'your-project-api-key',
     httpClient: null,
@@ -430,12 +440,12 @@ $client = new MailerClient(
 ```
 
 When you inject your own Guzzle client it is used **as-is** — add the retry
-middleware yourself via `Mailer\Sdk\Http\RetryMiddleware::make()` if you want it.
+middleware yourself via `Recado\Sdk\Http\RetryMiddleware::make()` if you want it.
 
 ### Error handling
 
 Every non-2xx response is mapped to a typed exception. All exceptions extend
-`Mailer\Sdk\Exception\MailerException` and expose:
+`Recado\Sdk\Exception\RecadoException` and expose:
 
 - `getErrorCode(): ?string` — the machine `code` field
 - `getStatus(): ?int` — the HTTP status
@@ -448,15 +458,15 @@ Every non-2xx response is mapped to a typed exception. All exceptions extend
 | `NotFoundException`       | 404         | e.g. `contact_not_found`, `template_not_found`, `message_not_found`; a sandbox `simulate()` from a **production** token gets a bare `404` (no code). |
 | `ValidationException`     | 422         | Validation failures and domain rejections (`recipient_suppressed`, `quota_exceeded`, `template_not_found`, `invalid_status_transition`, sandbox `invalid_event_for_channel` / `link_index_out_of_range`, ...). Adds `errors(): array` (field => messages). |
 | `RateLimitException`      | 429         | Adds `retryAfter(): ?int` parsed from the `Retry-After` header. |
-| `MailerConfigurationException` | — (local) | Missing/empty/placeholder base URL or empty token; thrown at client construction before any request. |
-| `UnsupportedFeatureException` | — (local) | The send relies on something the `/send` API has no field for, or that the SDK config disables (e.g. attachments with `mailer-sdk.mail.attachments = 'fail'`). |
+| `RecadoConfigurationException` | — (local) | Missing/empty/placeholder base URL (or the decommissioned `mailer.mosaiqo.com` v1.x host) or empty token; thrown at client construction before any request. |
+| `UnsupportedFeatureException` | — (local) | The send relies on something the `/send` API has no field for, or that the SDK config disables (e.g. attachments with `recado-sdk.mail.attachments = 'fail'`). |
 | `AttachmentsTooLargeException` | — (local) | The decoded attachments of one send exceed the 10 MB total limit; thrown before any upload. `getErrorCode()` is `attachments_too_large`, the same code the server returns for the 422. |
-| `MailerException`         | any other   | Base class; also the catch-all for unexpected non-2xx statuses. |
+| `RecadoException`         | any other   | Base class; also the catch-all for unexpected non-2xx statuses. |
 
 ```php
-use Mailer\Sdk\Exception\ValidationException;
-use Mailer\Sdk\Exception\RateLimitException;
-use Mailer\Sdk\Exception\MailerException;
+use Recado\Sdk\Exception\ValidationException;
+use Recado\Sdk\Exception\RateLimitException;
+use Recado\Sdk\Exception\RecadoException;
 
 try {
     $client->send()->email(['to' => 'jane@example.com', 'template' => 'welcome']);
@@ -468,7 +478,7 @@ try {
 } catch (RateLimitException $e) {
     sleep($e->retryAfter() ?? 1);
     // ...retry
-} catch (MailerException $e) {
+} catch (RecadoException $e) {
     report($e);
 }
 ```
@@ -479,7 +489,7 @@ A **sandbox project** lets your CI exercise the real send pipeline without
 touching production data or real inboxes. The API token *is* the routing: a
 sandbox token quietly captures everything it sends and unlocks the event
 simulator; a production token can't even see the simulator (it gets a bare
-`404`). So the same code under test only needs a different `MAILER_API_TOKEN`.
+`404`). So the same code under test only needs a different `RECADO_API_TOKEN`.
 
 The recipe is: **send → read it back from `messages()` (the sandbox inbox) →
 simulate an event → assert.**
@@ -502,7 +512,7 @@ $refreshed = $client->messages()->get($message->uuid);
 ```
 
 ```php
-use Mailer\Sdk\Resources\SandboxResource;
+use Recado\Sdk\Resources\SandboxResource;
 
 // Available events (plain strings work too):
 SandboxResource::EVENT_DELIVERED;   // 'delivered'
@@ -530,62 +540,62 @@ Notes and safety properties:
 ## Laravel integration
 
 The package is auto-discovered (no manual provider/alias registration). It
-registers a container-bound `MailerClient` singleton, a `Mailer` facade, a
-`mailer` mail transport and a `mailer` notification channel — all driven by the
-same `mailer-sdk` config.
+registers a container-bound `RecadoClient` singleton, a `Recado` facade, a
+`recado` mail transport and a `recado` notification channel — all driven by the
+same `recado-sdk` config.
 
 ### Configuration
 
 Publish the config file:
 
 ```bash
-php artisan vendor:publish --tag=mailer-sdk-config
+php artisan vendor:publish --tag=recado-sdk-config
 ```
 
-Then set the env vars (every key below maps to `config/mailer-sdk.php`):
+Then set the env vars (every key below maps to `config/recado-sdk.php`):
 
 ```dotenv
-# Connection. MAILER_API_TOKEN is required; MAILER_BASE_URL is optional and
+# Connection. RECADO_API_TOKEN is required; RECADO_BASE_URL is optional and
 # defaults to the hosted API (see the connection-config note below).
-MAILER_API_TOKEN=your-project-api-key
-# MAILER_BASE_URL=https://your-self-hosted-host/api/v1
+RECADO_API_TOKEN=your-project-api-key
+# RECADO_BASE_URL=https://your-self-hosted-host/api/v1
 
 # HTTP transport / resilience
-MAILER_TIMEOUT=10
-MAILER_RETRIES=2
-MAILER_RETRY_BASE_DELAY=200
-MAILER_RETRY_MAX_DELAY=5000
+RECADO_TIMEOUT=10
+RECADO_RETRIES=2
+RECADO_RETRY_BASE_DELAY=200
+RECADO_RETRY_MAX_DELAY=5000
 
 # Mail transport behavior
-MAILER_MAIL_ATTACHMENTS=send        # send | fail | ignore
-MAILER_MAIL_IDEMPOTENCY=content     # content | random | off
+RECADO_MAIL_ATTACHMENTS=send        # send | fail | ignore
+RECADO_MAIL_IDEMPOTENCY=content     # content | random | off
 ```
 
 Resolve the client from the container:
 
 ```php
-use Mailer\Sdk\MailerClient;
+use Recado\Sdk\RecadoClient;
 
-public function __construct(private MailerClient $mailer) {}
+public function __construct(private RecadoClient $recado) {}
 
 // ...
-$this->mailer->send()->email([...]);
+$this->recado->send()->email([...]);
 ```
 
-The resilience knobs (`MAILER_TIMEOUT`, `MAILER_RETRIES`,
-`MAILER_RETRY_BASE_DELAY`, `MAILER_RETRY_MAX_DELAY`) are wired into the
+The resilience knobs (`RECADO_TIMEOUT`, `RECADO_RETRIES`,
+`RECADO_RETRY_BASE_DELAY`, `RECADO_RETRY_MAX_DELAY`) are wired into the
 container-bound client automatically.
 
-> **Connection config.** `MAILER_API_TOKEN` is **required** — an empty token
-> throws a `Mailer\Sdk\Exception\MailerConfigurationException` at construction.
-> `MAILER_BASE_URL` is **optional**: it defaults to the hosted API
-> (`https://mailer.mosaiqo.com/api/v1`), so hosted users only set the token;
-> self-hosted users override it. An explicitly empty or `api.mailer.test`
+> **Connection config.** `RECADO_API_TOKEN` is **required** — an empty token
+> throws a `Recado\Sdk\Exception\RecadoConfigurationException` at construction.
+> `RECADO_BASE_URL` is **optional**: it defaults to the hosted API
+> (`https://recado.dev/api/v1`), so hosted users only set the token;
+> self-hosted users override it. An explicitly empty base URL, the old
 > placeholder base URL still throws, instead of silently sending to a dead host.
 
-### Mail transport (`MAIL_MAILER=mailer`)
+### Mail transport (`MAIL_MAILER=recado`)
 
-The package registers a `mailer` mail driver, so you can route Laravel's `Mail`
+The package registers a `recado` mail driver, so you can route Laravel's `Mail`
 facade (and notifications, queued mailers, etc.) through the platform `/send`
 API without changing any mailing code.
 
@@ -594,8 +604,8 @@ Add a mailer entry to `config/mail.php`:
 ```php
 'mailers' => [
     // ...
-    'mailer' => [
-        'transport' => 'mailer',
+    'recado' => [
+        'transport' => 'recado',
     ],
 ],
 ```
@@ -603,7 +613,7 @@ Add a mailer entry to `config/mail.php`:
 and select it:
 
 ```dotenv
-MAIL_MAILER=mailer
+MAIL_MAILER=recado
 ```
 
 Now every send flows through the API:
@@ -628,7 +638,7 @@ sends a template payload (`{to, template, variables}`) and ignores the inline
 subject/body:
 
 ```php
-use Mailer\Sdk\Laravel\Mail\MailerHeaders;
+use Recado\Sdk\Laravel\Mail\RecadoHeaders;
 
 class WelcomeMail extends Mailable
 {
@@ -638,9 +648,9 @@ class WelcomeMail extends Mailable
             ->subject('Welcome') // ignored when a template header is present
             ->withSymfonyMessage(function ($message) {
                 $headers = $message->getHeaders();
-                $headers->addTextHeader(MailerHeaders::TEMPLATE, 'welcome');
+                $headers->addTextHeader(RecadoHeaders::TEMPLATE, 'welcome');
                 $headers->addTextHeader(
-                    MailerHeaders::VARIABLES,
+                    RecadoHeaders::VARIABLES,
                     json_encode(['first_name' => 'Jane']),
                 );
             });
@@ -652,19 +662,19 @@ class WelcomeMail extends Mailable
 
 Attachments on a Mailable / Symfony message are mapped onto the `/send`
 `attachments` field and delivered by the platform. The behavior is driven by
-`mailer-sdk.mail.attachments` (env `MAILER_MAIL_ATTACHMENTS`):
+`recado-sdk.mail.attachments` (env `RECADO_MAIL_ATTACHMENTS`):
 
 | Mode | Behavior |
 | ---- | -------- |
 | `send` (default) | Map each attachment to `{filename, content_type, content(base64)}` and send it. An unnamed attachment gets the filename `attachment` plus an extension inferred from its media type (e.g. `attachment.pdf`). |
-| `fail` | Throw `Mailer\Sdk\Exception\UnsupportedFeatureException` — the pre-1.4 fail-loud behavior for apps that never want attachments to leave through this transport. |
+| `fail` | Throw `Recado\Sdk\Exception\UnsupportedFeatureException` — the pre-1.4 fail-loud behavior for apps that never want attachments to leave through this transport. |
 | `ignore` | Log a warning and send the message *without* the attachments. |
 
 Platform limits (validated server-side, one guard duplicated client-side):
 
 - **Max 10 files per send**, **10 MB decoded per file** and **~10 MB decoded
   total per send**. The SDK checks the *total* before uploading and throws a
-  local `Mailer\Sdk\Exception\AttachmentsTooLargeException` (error code
+  local `Recado\Sdk\Exception\AttachmentsTooLargeException` (error code
   `attachments_too_large` — the same code the server's `422` carries), so an
   oversized send fails fast instead of uploading megabytes of base64 first.
   Per-file size, filename and content-type validation stay server-side.
@@ -678,7 +688,7 @@ Platform limits (validated server-side, one guard duplicated client-side):
   fanned out as **per-recipient single `/send` calls**. Each fan-out send gets
   its own per-recipient idempotency key (attachments hash into the content
   key), so a requeued job still dedupes; an explicit
-  `X-Mailer-Idempotency-Key` is derived per recipient
+  `X-Recado-Idempotency-Key` is derived per recipient
   (`{key}:{sha1(recipient) prefix}`) for the same reason. Expect N API calls
   (and N ratelimit slots) instead of one batch call.
 
@@ -694,12 +704,12 @@ with explicit, documented behavior rather than silent surprises.
 - **Attachments are sent by default.** They are mapped onto the `/send`
   `attachments` field (see **Attachments** above for modes, limits, the
   filename blocklist and the batch fan-out). Consumers who relied on the old
-  fail-loud behavior must set `mailer-sdk.mail.attachments = 'fail'`
+  fail-loud behavior must set `recado-sdk.mail.attachments = 'fail'`
   explicitly; `'ignore'` still drops them with a warning — never silently.
 - **Suppressed recipients are not failures.** When the platform rejects an
   address as suppressed (`recipient_suppressed`), the transport does **not**
   throw: it logs a warning and dispatches a
-  `Mailer\Sdk\Laravel\Events\MessageSuppressed` event (carrying the recipient
+  `Recado\Sdk\Laravel\Events\MessageSuppressed` event (carrying the recipient
   email and reason). In a batch send, each suppressed recipient gets its own
   event while the rest are delivered. Listen for the event to prune your lists.
 - **Quota / sending-domain rejections are failures.** `quota_exceeded` and
@@ -714,32 +724,32 @@ with explicit, documented behavior rather than silent surprises.
   carrying attachments fans out as per-recipient single `/send` calls, because
   the batch endpoint rejects attachments (see **Attachments** above).
 - **Idempotency is automatic and retry-safe.** Per send the transport sets an
-  `Idempotency-Key` derived from `mailer-sdk.mail.idempotency` (env
-  `MAILER_MAIL_IDEMPOTENCY`):
+  `Idempotency-Key` derived from `recado-sdk.mail.idempotency` (env
+  `RECADO_MAIL_IDEMPOTENCY`):
   - `content` (default): a deterministic hash of the message content, so a
     requeued job never duplicates the send. Two genuinely identical messages
     sent within the platform's idempotency window dedup — switch to `random` if
     that is not what you want.
   - `random`: a fresh UUID per send attempt (no dedup).
   - `off`: no key.
-  Override per message with the `X-Mailer-Idempotency-Key`
-  (`MailerHeaders::IDEMPOTENCY_KEY`) header.
+  Override per message with the `X-Recado-Idempotency-Key`
+  (`RecadoHeaders::IDEMPOTENCY_KEY`) header.
 
 ### Notification channel
 
-The SDK also registers a `mailer` **notification channel**, so a Notification
-can deliver through the platform `/send` API by returning `['mailer']` from
-`via()` and defining `toMailer($notifiable)`.
+The SDK also registers a `recado` **notification channel**, so a Notification
+can deliver through the platform `/send` API by returning `['recado']` from
+`via()` and defining `toRecado($notifiable)`.
 
-`toMailer()` returns a `Mailer\Sdk\Laravel\Mail\MailerMessage` for full control.
+`toRecado()` returns a `Recado\Sdk\Laravel\Mail\RecadoMessage` for full control.
 **Inline mode** uses `subject()`/`html()`/`text()`:
 
 ```php
-use Mailer\Sdk\Laravel\Mail\MailerMessage;
+use Recado\Sdk\Laravel\Mail\RecadoMessage;
 
-public function toMailer($notifiable): MailerMessage
+public function toRecado($notifiable): RecadoMessage
 {
-    return (new MailerMessage)
+    return (new RecadoMessage)
         ->subject('Your order shipped')
         ->html('<p>It is on the way.</p>')
         ->text('It is on the way.');
@@ -749,25 +759,25 @@ public function toMailer($notifiable): MailerMessage
 **Template mode** renders a stored template with per-recipient variables:
 
 ```php
-return (new MailerMessage)
+return (new RecadoMessage)
     ->template('order-shipped')
     ->variables(['name' => $notifiable->name]);
 ```
 
-**Recipient routing precedence:** an explicit `MailerMessage::to()` wins, then
-`routeNotificationFor('mailer')`, then `routeNotificationFor('mail')`, then a
+**Recipient routing precedence:** an explicit `RecadoMessage::to()` wins, then
+`routeNotificationFor('recado')`, then `routeNotificationFor('mail')`, then a
 public `$email` property on the notifiable.
 
 **Other return types** are accepted too: a plain `/send` payload `array` is used
 directly (its `to`/`idempotency_key` keys are honored, and an `attachments` key
 passes through to the API — see **Attachments** above for shape and limits),
 and an `Illuminate\Contracts\Mail\Mailable` is rendered to its subject + HTML
-only (its attachments are NOT carried over) — return a `MailerMessage` for
+only (its attachments are NOT carried over) — return a `RecadoMessage` for
 templates, a text part or an explicit idempotency key, or the array form for
 attachments.
 
 The outcome semantics mirror the transport: a **suppressed recipient is not a
-failure** — a `Mailer\Sdk\Laravel\Events\MessageSuppressed` event is dispatched
+failure** — a `Recado\Sdk\Laravel\Events\MessageSuppressed` event is dispatched
 and the send is skipped — while quota / sending-domain / any other API error is
 rethrown so Laravel marks the notification failed and retries per your queue
 policy.
@@ -776,37 +786,37 @@ A complete notification:
 
 ```php
 use Illuminate\Notifications\Notification;
-use Mailer\Sdk\Laravel\Mail\MailerMessage;
+use Recado\Sdk\Laravel\Mail\RecadoMessage;
 
 class OrderShipped extends Notification
 {
     public function via($notifiable): array
     {
-        return ['mailer'];
+        return ['recado'];
     }
 
-    public function toMailer($notifiable): MailerMessage
+    public function toRecado($notifiable): RecadoMessage
     {
-        return (new MailerMessage)
+        return (new RecadoMessage)
             ->subject('Your order shipped')
             ->html('<p>It is on the way.</p>');
         // Or a stored template:
-        // return (new MailerMessage)->template('order-shipped')->variables(['name' => $notifiable->name]);
+        // return (new RecadoMessage)->template('order-shipped')->variables(['name' => $notifiable->name]);
     }
 }
 ```
 
 ### Facade
 
-The package registers a `Mailer` facade (auto-registered via package discovery)
-that proxies the same container-bound `MailerClient` singleton — no separate
+The package registers a `Recado` facade (auto-registered via package discovery)
+that proxies the same container-bound `RecadoClient` singleton — no separate
 configuration is needed:
 
 ```php
-use Mailer\Sdk\Laravel\Facades\Mailer;
+use Recado\Sdk\Laravel\Facades\Recado;
 
-Mailer::contacts()->list();
-Mailer::send()->email([
+Recado::contacts()->list();
+Recado::send()->email([
     'to' => 'jane@example.com',
     'subject' => 'Hello',
     'body' => '<p>Hi</p>',

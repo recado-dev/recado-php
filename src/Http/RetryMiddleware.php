@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Http;
+namespace Recado\Sdk\Http;
 
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Middleware;

@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Pagination;
+namespace Recado\Sdk\Pagination;
 
-use Mailer\Sdk\Dto\Paginated;
+use Recado\Sdk\Dto\Paginated;
 
 /**
  * Framework-agnostic helper that lazily walks every page of a paginated

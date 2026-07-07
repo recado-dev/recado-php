@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests;
+namespace Recado\Sdk\Tests;
 
-use Mailer\Sdk\Dto\NotificationChannelResult;
-use Mailer\Sdk\Dto\NotificationResult;
-use Mailer\Sdk\Exception\ValidationException;
+use Recado\Sdk\Dto\NotificationChannelResult;
+use Recado\Sdk\Dto\NotificationResult;
+use Recado\Sdk\Exception\ValidationException;
 
 final class NotificationsTest extends TestCase
 {

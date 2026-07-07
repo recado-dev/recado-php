@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests;
+namespace Recado\Sdk\Tests;
 
-use Mailer\Sdk\Dto\BatchItem;
+use Recado\Sdk\Dto\BatchItem;
 
 final class BatchTest extends TestCase
 {

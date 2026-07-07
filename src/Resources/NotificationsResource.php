@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Resources;
+namespace Recado\Sdk\Resources;
 
-use Mailer\Sdk\Dto\NotificationResult;
-use Mailer\Sdk\Exception\ValidationException;
-use Mailer\Sdk\Http\HttpClient;
+use Recado\Sdk\Dto\NotificationResult;
+use Recado\Sdk\Exception\ValidationException;
+use Recado\Sdk\Http\HttpClient;
 
 /**
  * The Notifications resource: multichannel (in-app + push) notification sends

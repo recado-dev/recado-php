@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests;
+namespace Recado\Sdk\Tests;
 
-use Mailer\Sdk\Dto\SentMessage;
+use Recado\Sdk\Dto\SentMessage;
 
 final class SendTest extends TestCase
 {

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Resources;
+namespace Recado\Sdk\Resources;
 
-use Mailer\Sdk\Dto\Tag;
-use Mailer\Sdk\Http\HttpClient;
+use Recado\Sdk\Dto\Tag;
+use Recado\Sdk\Http\HttpClient;
 
 /**
  * The Tags resource (read-only).

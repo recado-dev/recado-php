@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Exception;
+namespace Recado\Sdk\Exception;
 
 /**
  * Thrown locally, before any HTTP request, when the decoded attachments of a
@@ -14,7 +14,7 @@ namespace Mailer\Sdk\Exception;
  * server uses — so callers can branch on one value for both the local and the
  * server-side rejection.
  */
-class AttachmentsTooLargeException extends MailerException
+class AttachmentsTooLargeException extends RecadoException
 {
     public static function forTotalBytes(int $totalBytes, int $maxBytes): self
     {

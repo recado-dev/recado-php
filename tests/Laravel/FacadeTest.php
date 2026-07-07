@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests\Laravel;
+namespace Recado\Sdk\Tests\Laravel;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
-use Mailer\Sdk\Laravel\Facades\Mailer;
-use Mailer\Sdk\MailerClient;
-use Mailer\Sdk\Resources\ContactsResource;
+use Recado\Sdk\Laravel\Facades\Recado;
+use Recado\Sdk\RecadoClient;
+use Recado\Sdk\Resources\ContactsResource;
 use Psr\Http\Message\RequestInterface;
 
 /**
- * Proves the Mailer facade resolves the container-bound MailerClient singleton
+ * Proves the Recado facade resolves the container-bound RecadoClient singleton
  * and proxies its resource accessors through to the real HTTP client.
  */
 final class FacadeTest extends TestCase
@@ -25,21 +25,21 @@ final class FacadeTest extends TestCase
      */
     protected function getPackageAliases($app): array
     {
-        return ['Mailer' => Mailer::class];
+        return ['Recado' => Recado::class];
     }
 
     public function test_facade_root_is_the_container_singleton(): void
     {
-        $this->assertInstanceOf(MailerClient::class, Mailer::getFacadeRoot());
-        $this->assertSame($this->app->make(MailerClient::class), Mailer::getFacadeRoot());
+        $this->assertInstanceOf(RecadoClient::class, Recado::getFacadeRoot());
+        $this->assertSame($this->app->make(RecadoClient::class), Recado::getFacadeRoot());
     }
 
     public function test_resource_accessor_is_memoized(): void
     {
-        $contacts = Mailer::contacts();
+        $contacts = Recado::contacts();
 
         $this->assertInstanceOf(ContactsResource::class, $contacts);
-        $this->assertSame($contacts, Mailer::contacts());
+        $this->assertSame($contacts, Recado::contacts());
     }
 
     public function test_send_proxies_through_the_real_client(): void
@@ -51,7 +51,7 @@ final class FacadeTest extends TestCase
             ])),
         ], $history);
 
-        Mailer::send()->email([
+        Recado::send()->email([
             'to' => 'jane@example.com',
             'subject' => 'Hello',
             'body' => '<p>Hi</p>',
@@ -60,7 +60,7 @@ final class FacadeTest extends TestCase
         $this->assertCount(1, $history);
         $request = $history[0]['request'];
         $this->assertSame('POST', $request->getMethod());
-        $this->assertSame('https://mailer.example.com/api/v1/send', (string) $request->getUri());
+        $this->assertSame('https://recado.example.com/api/v1/send', (string) $request->getUri());
 
         $payload = json_decode((string) $request->getBody(), true);
         $this->assertSame('jane@example.com', $payload['to']);
@@ -69,7 +69,7 @@ final class FacadeTest extends TestCase
     }
 
     /**
-     * Re-bind the container's MailerClient singleton with one backed by a mock
+     * Re-bind the container's RecadoClient singleton with one backed by a mock
      * HTTP handler, so the facade-resolved client uses it. The facade caches its
      * resolved root, so callers must clear it after rebinding.
      *
@@ -84,10 +84,10 @@ final class FacadeTest extends TestCase
         $guzzle = new Client(['handler' => $stack]);
 
         $this->app->instance(
-            MailerClient::class,
-            new MailerClient('https://mailer.example.com/api/v1', 'test-token', $guzzle),
+            RecadoClient::class,
+            new RecadoClient('https://recado.example.com/api/v1', 'test-token', $guzzle),
         );
 
-        Mailer::clearResolvedInstance(MailerClient::class);
+        Recado::clearResolvedInstance(RecadoClient::class);
     }
 }

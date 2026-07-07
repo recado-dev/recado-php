@@ -2,34 +2,34 @@
 
 declare(strict_types=1);
 
-namespace Mailer\Sdk\Tests\Notifications;
+namespace Recado\Sdk\Tests\Notifications;
 
-use Mailer\Sdk\Exception\ValidationException;
-use Mailer\Sdk\Laravel\Events\MessageSuppressed;
-use Mailer\Sdk\Laravel\Mail\MailerMessage;
-use Mailer\Sdk\Laravel\Notifications\MailerChannel;
-use Mailer\Sdk\MailerClient;
-use Mailer\Sdk\Tests\Mail\Support\SpyDispatcher;
-use Mailer\Sdk\Tests\Mail\Support\SpyLogger;
-use Mailer\Sdk\Tests\TestCase;
+use Recado\Sdk\Exception\ValidationException;
+use Recado\Sdk\Laravel\Events\MessageSuppressed;
+use Recado\Sdk\Laravel\Mail\RecadoMessage;
+use Recado\Sdk\Laravel\Notifications\RecadoChannel;
+use Recado\Sdk\RecadoClient;
+use Recado\Sdk\Tests\Mail\Support\SpyDispatcher;
+use Recado\Sdk\Tests\Mail\Support\SpyLogger;
+use Recado\Sdk\Tests\TestCase;
 use Psr\Http\Message\RequestInterface;
 
-final class MailerChannelTest extends TestCase
+final class RecadoChannelTest extends TestCase
 {
-    public function test_mailer_message_inline_posts_to_send_with_resolved_recipient_and_idempotency_header(): void
+    public function test_recado_message_inline_posts_to_send_with_resolved_recipient_and_idempotency_header(): void
     {
         $history = [];
         $client = $this->clientWithResponses([
             $this->jsonResponse(202, ['data' => ['id' => 'm', 'status' => 'queued']]),
         ], $history);
 
-        $channel = new MailerChannel($client, [], new SpyDispatcher(), new SpyLogger());
+        $channel = new RecadoChannel($client, [], new SpyDispatcher(), new SpyLogger());
 
         $notifiable = $this->notifiable();
         $notifiable->mail = 'jane@example.com';
 
         $notification = $this->notification(
-            (new MailerMessage)->subject('Hi')->html('<p>Hello</p>'),
+            (new RecadoMessage)->subject('Hi')->html('<p>Hello</p>'),
         );
 
         $channel->send($notifiable, $notification);
@@ -37,7 +37,7 @@ final class MailerChannelTest extends TestCase
         $this->assertCount(1, $history);
         $request = $history[0]['request'];
         $this->assertSame('POST', $request->getMethod());
-        $this->assertSame('https://mailer.example.com/api/v1/send', (string) $request->getUri());
+        $this->assertSame('https://recado.example.com/api/v1/send', (string) $request->getUri());
 
         $payload = $this->body($history, 0);
         $this->assertSame('jane@example.com', $payload['to']);
@@ -53,13 +53,13 @@ final class MailerChannelTest extends TestCase
             $this->jsonResponse(202, ['data' => ['id' => 'm', 'status' => 'queued']]),
         ], $history);
 
-        $channel = new MailerChannel($client);
+        $channel = new RecadoChannel($client);
 
         $notifiable = $this->notifiable();
         $notifiable->mail = 'jane@example.com';
 
         $notification = $this->notification(
-            (new MailerMessage)->template('welcome')->variables(['first_name' => 'Jane']),
+            (new RecadoMessage)->template('welcome')->variables(['first_name' => 'Jane']),
         );
 
         $channel->send($notifiable, $notification);
@@ -81,13 +81,13 @@ final class MailerChannelTest extends TestCase
         ], $history);
 
         $events = new SpyDispatcher();
-        $channel = new MailerChannel($client, [], $events, new SpyLogger());
+        $channel = new RecadoChannel($client, [], $events, new SpyLogger());
 
         $notifiable = $this->notifiable();
         $notifiable->mail = 'jane@example.com';
 
         $notification = $this->notification(
-            (new MailerMessage)->subject('Hi')->html('<p>x</p>'),
+            (new RecadoMessage)->subject('Hi')->html('<p>x</p>'),
         );
 
         $channel->send($notifiable, $notification);
@@ -104,13 +104,13 @@ final class MailerChannelTest extends TestCase
             $this->jsonResponse(422, ['message' => 'Monthly quota exceeded.', 'code' => 'quota_exceeded']),
         ], $history);
 
-        $channel = new MailerChannel($client);
+        $channel = new RecadoChannel($client);
 
         $notifiable = $this->notifiable();
         $notifiable->mail = 'jane@example.com';
 
         $notification = $this->notification(
-            (new MailerMessage)->subject('Hi')->html('<p>x</p>'),
+            (new RecadoMessage)->subject('Hi')->html('<p>x</p>'),
         );
 
         try {
@@ -128,13 +128,13 @@ final class MailerChannelTest extends TestCase
             $this->jsonResponse(202, ['data' => ['id' => 'm', 'status' => 'queued']]),
         ], $history);
 
-        $channel = new MailerChannel($client);
+        $channel = new RecadoChannel($client);
 
         $notifiable = $this->notifiable();
         $notifiable->mail = 'jane@example.com';
 
         $notification = $this->notification(
-            (new MailerMessage)->to('override@example.com')->subject('Hi')->html('<p>x</p>'),
+            (new RecadoMessage)->to('override@example.com')->subject('Hi')->html('<p>x</p>'),
         );
 
         $channel->send($notifiable, $notification);
@@ -148,12 +148,12 @@ final class MailerChannelTest extends TestCase
         $history = [];
         $client = $this->clientWithResponses([], $history);
 
-        $channel = new MailerChannel($client);
+        $channel = new RecadoChannel($client);
 
         $notifiable = new class {};
 
         $notification = $this->notification(
-            (new MailerMessage)->subject('Hi')->html('<p>x</p>'),
+            (new RecadoMessage)->subject('Hi')->html('<p>x</p>'),
         );
 
         $this->expectException(\InvalidArgumentException::class);
@@ -161,21 +161,21 @@ final class MailerChannelTest extends TestCase
         $channel->send($notifiable, $notification);
     }
 
-    public function test_routeNotificationFor_mailer_takes_precedence_over_mail(): void
+    public function test_routeNotificationFor_recado_takes_precedence_over_mail(): void
     {
         $history = [];
         $client = $this->clientWithResponses([
             $this->jsonResponse(202, ['data' => ['id' => 'm', 'status' => 'queued']]),
         ], $history);
 
-        $channel = new MailerChannel($client);
+        $channel = new RecadoChannel($client);
 
         $notifiable = $this->notifiable();
-        $notifiable->mailer = 'ml@example.com';
+        $notifiable->recado = 'ml@example.com';
         $notifiable->mail = 'ja@example.com';
 
         $notification = $this->notification(
-            (new MailerMessage)->subject('Hi')->html('<p>x</p>'),
+            (new RecadoMessage)->subject('Hi')->html('<p>x</p>'),
         );
 
         $channel->send($notifiable, $notification);
@@ -186,7 +186,7 @@ final class MailerChannelTest extends TestCase
 
     /**
      * A notifiable with the three resolution surfaces: routeNotificationFor()
-     * for the mailer/mail drivers and a public $email fallback.
+     * for the recado/mail drivers and a public $email fallback.
      */
     private function notifiable(): object
     {
@@ -194,21 +194,21 @@ final class MailerChannelTest extends TestCase
         {
             public mixed $mail = null;
 
-            public mixed $mailer = null;
+            public mixed $recado = null;
 
             public mixed $email = null;
 
             public function routeNotificationFor($driver, $notification = null): mixed
             {
-                return $driver === 'mailer'
-                    ? $this->mailer
+                return $driver === 'recado'
+                    ? $this->recado
                     : ($driver === 'mail' ? $this->mail : null);
             }
         };
     }
 
     /**
-     * A notification whose toMailer() returns the given message.
+     * A notification whose toRecado() returns the given message.
      *
      * @param mixed $message
      */
@@ -218,7 +218,7 @@ final class MailerChannelTest extends TestCase
         {
             public mixed $message = null;
 
-            public function toMailer($notifiable): mixed
+            public function toRecado($notifiable): mixed
             {
                 return $this->message;
             }
