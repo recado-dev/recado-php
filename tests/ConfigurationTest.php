@@ -92,4 +92,23 @@ final class ConfigurationTest extends TestCase
 
         $this->assertInstanceOf(RecadoClient::class, $client);
     }
+
+    public function test_default_base_url_is_the_canonical_api_host(): void
+    {
+        $this->assertSame('https://api.recado.dev/v1', RecadoClient::DEFAULT_BASE_URL);
+
+        $client = new RecadoClient(RecadoClient::DEFAULT_BASE_URL, 'test-token');
+
+        $this->assertInstanceOf(RecadoClient::class, $client);
+    }
+
+    public function test_legacy_apex_base_url_is_still_accepted(): void
+    {
+        // The pre-2.1.0 hosted default. The apex path stays supported forever,
+        // so a consumer pinning it deliberately must NOT be rejected by the
+        // dead-host guard.
+        $client = new RecadoClient('https://recado.dev/api/v1', 'test-token');
+
+        $this->assertInstanceOf(RecadoClient::class, $client);
+    }
 }

@@ -13,7 +13,8 @@ Terse and imperative — do exactly this. Full human reference: [README.md](READ
    composer require recado/recado-php:^2.0
    ```
 2. Set env. `RECADO_API_TOKEN` is **REQUIRED**; `RECADO_BASE_URL` is optional
-   and defaults to the hosted API (`https://recado.dev/api/v1`) — set it only
+   and defaults to the canonical hosted API (`https://api.recado.dev/v1`; the
+   legacy apex path `https://recado.dev/api/v1` remains valid) — set it only
    for self-hosted/other environments. An empty token, a placeholder base URL
    or the decommissioned `mailer.mosaiqo.com` host throws
    `RecadoConfigurationException` at boot instead of silently sending to a

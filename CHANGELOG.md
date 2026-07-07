@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-07
+
+### Changed
+
+- **Default base URL is now the canonical API host `https://api.recado.dev/v1`**
+  (was `https://recado.dev/api/v1`). The platform serves the public API
+  canonically at `api.recado.dev/v1`; the legacy apex path
+  `https://recado.dev/api/v1` **remains supported** — a consumer pinning it via
+  `RECADO_BASE_URL` keeps working and is deliberately NOT rejected by the
+  dead-host guard. No other changes.
+
 ## [2.0.0] - 2026-07-07
 
 First release under the **Recado** brand. **NO functional changes vs 1.4.0** —
@@ -222,7 +233,8 @@ the same code and tests, renamed. Everything brand-carrying is breaking:
   (wrappable in a Laravel `LazyCollection`).
 - Read-only campaigns resource (`campaigns()->list()` / `get()` with stats).
 
-[Unreleased]: https://github.com/recado-dev/recado-php/compare/v2.0.0...main
+[Unreleased]: https://github.com/recado-dev/recado-php/compare/v2.1.0...main
+[2.1.0]: https://github.com/recado-dev/recado-php/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/recado-dev/recado-php/compare/v1.4.0...v2.0.0
 [1.4.0]: https://github.com/recado-dev/recado-php/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/recado-dev/recado-php/compare/v1.3.0...v1.3.1

@@ -8,11 +8,13 @@ return [
     | Base URL
     |--------------------------------------------------------------------------
     |
-    | The fully qualified base URL of the Recado REST API v1, including the
-    | "/api/v1" suffix. A trailing slash is allowed and stripped internally.
+    | The fully qualified base URL of the Recado REST API v1. A trailing
+    | slash is allowed and stripped internally.
     |
-    | Optional for hosted users: it defaults to the hosted API, so you only
-    | need to set RECADO_API_TOKEN. Self-hosted users set RECADO_BASE_URL to
+    | Optional for hosted users: it defaults to the canonical hosted API
+    | (https://api.recado.dev/v1 — the legacy apex path
+    | https://recado.dev/api/v1 remains supported), so you only need to set
+    | RECADO_API_TOKEN. Self-hosted users set RECADO_BASE_URL to
     | their own endpoint. An explicitly empty or placeholder value — or the
     | decommissioned pre-rebrand mailer.mosaiqo.com host — still makes the
     | RecadoClient throw a RecadoConfigurationException at construction.

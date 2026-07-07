@@ -41,11 +41,13 @@ final class RecadoClient
     public const string LEGACY_BASE_URL_HOST = 'mailer.mosaiqo.com';
 
     /**
-     * The hosted API's base URL, used as the default when RECADO_BASE_URL is
-     * not set. Hosted consumers only need to configure RECADO_API_TOKEN;
-     * self-hosted consumers override RECADO_BASE_URL with their own endpoint.
+     * The hosted API's canonical base URL, used as the default when
+     * RECADO_BASE_URL is not set. Hosted consumers only need to configure
+     * RECADO_API_TOKEN; self-hosted consumers override RECADO_BASE_URL with
+     * their own endpoint. The legacy apex path (https://recado.dev/api/v1)
+     * remains supported — a consumer may pin it deliberately.
      */
-    public const string DEFAULT_BASE_URL = 'https://recado.dev/api/v1';
+    public const string DEFAULT_BASE_URL = 'https://api.recado.dev/v1';
 
     private readonly HttpClient $http;
 
@@ -100,22 +102,22 @@ final class RecadoClient
     {
         if (trim($baseUrl) === '') {
             throw new RecadoConfigurationException(
-                'RECADO_BASE_URL is not configured; set it to your Recado /api/v1 endpoint '
-                .'(e.g. https://recado.dev/api/v1).',
+                'RECADO_BASE_URL is not configured; set it to your Recado API endpoint '
+                .'(e.g. https://api.recado.dev/v1).',
             );
         }
 
         if (str_contains($baseUrl, self::PLACEHOLDER_BASE_URL_HOST)) {
             throw new RecadoConfigurationException(
                 'RECADO_BASE_URL is still set to the placeholder "'.self::PLACEHOLDER_BASE_URL_HOST.'"; '
-                .'set it to your Recado /api/v1 endpoint (e.g. https://recado.dev/api/v1).',
+                .'set it to your Recado API endpoint (e.g. https://api.recado.dev/v1).',
             );
         }
 
         if (str_contains($baseUrl, self::LEGACY_BASE_URL_HOST)) {
             throw new RecadoConfigurationException(
                 'RECADO_BASE_URL still points at the decommissioned "'.self::LEGACY_BASE_URL_HOST.'" host; '
-                .'the platform moved to https://recado.dev — set RECADO_BASE_URL to https://recado.dev/api/v1 '
+                .'the platform moved to https://recado.dev — set RECADO_BASE_URL to https://api.recado.dev/v1 '
                 .'(or your self-hosted /api/v1 endpoint).',
             );
         }

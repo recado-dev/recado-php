@@ -95,7 +95,8 @@ MAIL_MAILER=recado
 
 # Connection. RECADO_API_TOKEN is REQUIRED (a missing/empty token throws a
 # RecadoConfigurationException at boot). RECADO_BASE_URL is OPTIONAL — it
-# defaults to the hosted API (https://recado.dev/api/v1); set it only
+# defaults to the canonical hosted API (https://api.recado.dev/v1; the legacy
+# apex path https://recado.dev/api/v1 remains valid); set it only
 # if you self-host or point at another environment.
 RECADO_API_TOKEN=<your-project-API-key>
 # RECADO_BASE_URL=https://your-self-hosted-host/api/v1
@@ -588,9 +589,10 @@ container-bound client automatically.
 
 > **Connection config.** `RECADO_API_TOKEN` is **required** — an empty token
 > throws a `Recado\Sdk\Exception\RecadoConfigurationException` at construction.
-> `RECADO_BASE_URL` is **optional**: it defaults to the hosted API
-> (`https://recado.dev/api/v1`), so hosted users only set the token;
-> self-hosted users override it. An explicitly empty base URL, the old
+> `RECADO_BASE_URL` is **optional**: it defaults to the canonical hosted API
+> (`https://api.recado.dev/v1`; the legacy apex path
+> `https://recado.dev/api/v1` remains valid), so hosted users only set the
+> token; self-hosted users override it. An explicitly empty base URL, the old
 > placeholder base URL still throws, instead of silently sending to a dead host.
 
 ### Mail transport (`MAIL_MAILER=recado`)
