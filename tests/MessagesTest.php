@@ -23,6 +23,10 @@ final class MessagesTest extends TestCase
                     'source' => 'api',
                     'campaign_id' => null,
                     'automation_id' => null,
+                    'cc' => ['copy@example.com'],
+                    'bcc' => null,
+                    'reply_to' => 'support@project.test',
+                    'metadata' => ['order_id' => 42],
                     'error' => null,
                     'sent_at' => '2026-01-01T00:00:01Z',
                     'created_at' => '2026-01-01T00:00:00Z',
@@ -43,6 +47,10 @@ final class MessagesTest extends TestCase
         $this->assertSame('delivered', $message->status);
         $this->assertSame('api', $message->source);
         $this->assertNull($message->campaignId);
+        $this->assertSame(['copy@example.com'], $message->cc);
+        $this->assertNull($message->bcc);
+        $this->assertSame('support@project.test', $message->replyTo);
+        $this->assertSame(['order_id' => 42], $message->metadata);
 
         $this->assertCount(3, $message->events);
         $this->assertContainsOnlyInstancesOf(MessageEvent::class, $message->events);

@@ -11,7 +11,10 @@ namespace Recado\Sdk\Dto;
 final readonly class Message
 {
     /**
-     * @param array<int, MessageEvent> $events
+     * @param array<int, MessageEvent>  $events
+     * @param array<int, string>|null   $cc
+     * @param array<int, string>|null   $bcc
+     * @param array<string, mixed>|null $metadata
      */
     public function __construct(
         public ?string $uuid,
@@ -26,6 +29,10 @@ final readonly class Message
         public ?string $sentAt,
         public ?string $createdAt,
         public array $events,
+        public ?array $cc = null,
+        public ?array $bcc = null,
+        public ?string $replyTo = null,
+        public ?array $metadata = null,
     ) {
     }
 
@@ -54,6 +61,10 @@ final readonly class Message
             sentAt: isset($data['sent_at']) ? (string) $data['sent_at'] : null,
             createdAt: isset($data['created_at']) ? (string) $data['created_at'] : null,
             events: $events,
+            cc: isset($data['cc']) && is_array($data['cc']) ? array_values($data['cc']) : null,
+            bcc: isset($data['bcc']) && is_array($data['bcc']) ? array_values($data['bcc']) : null,
+            replyTo: isset($data['reply_to']) ? (string) $data['reply_to'] : null,
+            metadata: isset($data['metadata']) && is_array($data['metadata']) ? $data['metadata'] : null,
         );
     }
 }

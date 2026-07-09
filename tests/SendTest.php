@@ -65,6 +65,36 @@ final class SendTest extends TestCase
         $this->assertFalse($request->hasHeader('Idempotency-Key'));
     }
 
+    public function test_email_passes_send_options_through(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(202, ['data' => ['id' => 'abc', 'status' => 'queued']]),
+        ], $history);
+
+        $client->send()->email([
+            'to' => 'jane@example.com',
+            'subject' => 'Hello',
+            'body' => '<p>Hi</p>',
+            'cc' => ['copy@example.com'],
+            'bcc' => ['hidden@example.com'],
+            'reply_to' => 'support@example.com',
+            'from' => 'notify@verified.example.com',
+            'from_name' => 'Acme',
+            'headers' => ['X-Order-Id' => '42'],
+            'metadata' => ['order_id' => 42],
+        ]);
+
+        $body = json_decode((string) $history[0]['request']->getBody(), true);
+        $this->assertSame(['copy@example.com'], $body['cc']);
+        $this->assertSame(['hidden@example.com'], $body['bcc']);
+        $this->assertSame('support@example.com', $body['reply_to']);
+        $this->assertSame('notify@verified.example.com', $body['from']);
+        $this->assertSame('Acme', $body['from_name']);
+        $this->assertSame(['X-Order-Id' => '42'], $body['headers']);
+        $this->assertSame(['order_id' => 42], $body['metadata']);
+    }
+
     public function test_track_records_event(): void
     {
         $history = [];

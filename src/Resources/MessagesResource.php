@@ -24,7 +24,9 @@ final readonly class MessagesResource
      * List messages (GET /messages).
      *
      * @param array<string, mixed> $query status, source, campaign_id, search,
-     *                                    per_page, page.
+     *                                    metadata_key + metadata_value (a
+     *                                    single exact-match pair, both
+     *                                    required together), per_page, page.
      *
      * @return Paginated<Message>
      */
@@ -39,6 +41,7 @@ final readonly class MessagesResource
      * Lazily iterate every message across all pages (GET /messages).
      *
      * @param array<string, mixed> $query status, source, campaign_id, search,
+     *                                    metadata_key + metadata_value,
      *                                    per_page (page is managed automatically).
      *
      * @return \Generator<int, Message>

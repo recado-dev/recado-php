@@ -27,9 +27,21 @@ final readonly class SendResource
      * decoded per file and per send — the latter rejected with a 422 and code
      * `attachments_too_large`; executable filename extensions are refused).
      *
+     * Optional send options (all snapshotted on the message at queue time):
+     * `cc`/`bcc` (arrays of emails, max 10 each; copies never create
+     * contacts and suppressed copy addresses are silently dropped),
+     * `reply_to` (single email), `from`/`from_name` (per-send sender
+     * override — `from` must be on a verified sending domain when the
+     * project enforces it, 422 code `sending_domain_not_verified`),
+     * `headers` (max 10 custom `X-*` headers; `X-SES-*`/`X-Recado-*` are
+     * reserved) and `metadata` (up to 10 scalar values, 4 KB serialized;
+     * exposed and filterable through the messages endpoints).
+     *
      * @param array<string, mixed> $payload `to` plus either `template` or
      *                                       `subject`+`body`, optional `text`,
-     *                                       `variables`, `attachments`.
+     *                                       `variables`, `attachments`, `cc`,
+     *                                       `bcc`, `reply_to`, `from`,
+     *                                       `from_name`, `headers`, `metadata`.
      */
     public function email(array $payload, ?string $idempotencyKey = null): SentMessage
     {
@@ -47,6 +59,10 @@ final readonly class SendResource
     /**
      * Send a batch of transactional emails (POST /send/batch).
      *
+     * Each item carries the same fields as {@see email()}, including the
+     * send options (`cc`, `bcc`, `reply_to`, `from`, `from_name`, `headers`,
+     * `metadata`); an item whose `from` override is not on a verified
+     * sending domain fails per item with code `sending_domain_not_verified`.
      * The batch endpoint rejects `attachments` on any message (422) — the
      * field is single-send only; use {@see email()} per recipient instead
      * (the Laravel mail transport does that fan-out automatically).

@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Send options on `/send` and `/send/batch`** (the payload is passed
+  through as-is, so no signature changes): `cc`/`bcc` (max 10 each; copies
+  never create contacts, suppressed copy addresses are silently dropped),
+  `reply_to`, `from`/`from_name` per-send sender override (`from` must be on
+  a verified sending domain when the project enforces it — `422` code
+  `sending_domain_not_verified`; on batch it fails per item), custom
+  `headers` (max 10 `X-*` names; `X-SES-*`/`X-Recado-*` reserved) and
+  `metadata` (up to 10 scalar values, 4 KB serialized). Documented on
+  `SendResource::email()`/`batch()`.
+- **`Message` DTO** now exposes `cc`, `bcc`, `replyTo` and `metadata`
+  (new optional constructor parameters; `fromArray()` reads the
+  corresponding API fields).
+- **Messages list filter**: `MessagesResource::list()`/`cursor()` accept
+  `metadata_key` + `metadata_value` (a single exact-match pair, both
+  required together).
+
 ## [2.1.0] - 2026-07-07
 
 ### Changed
