@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Recado\Sdk\Resources;
 
+use Recado\Sdk\Dto\NotificationBatchResult;
 use Recado\Sdk\Dto\NotificationResult;
 use Recado\Sdk\Exception\ValidationException;
 use Recado\Sdk\Http\HttpClient;
@@ -54,5 +55,39 @@ final readonly class NotificationsResource
         }
 
         return NotificationResult::fromArray($response['data'] ?? []);
+    }
+
+    /**
+     * Send a batch of notifications (POST /notifications/batch).
+     *
+     * Each item carries the same fields as {@see send()} (`to`, `title`,
+     * `body`, optional `channels` — defaulting to `['in_app']` —,
+     * `action_url`, `icon`, `variables`); 1-100 items per request, rate
+     * limited at 10 requests/min per token. A single malformed item rejects
+     * the WHOLE request with a {@see ValidationException}; runtime outcomes
+     * are per item and per channel and never abort the batch, so unlike
+     * {@see send()} the endpoint always answers `202` — inspect `queued` /
+     * `failed` and the per-channel results.
+     *
+     * Passing an `$idempotencyKey` replays the recorded response for 24
+     * hours instead of queueing a second batch (its own key namespace: a
+     * `/send/batch` key with the same string is unrelated). A retry arriving
+     * while the first request is still in flight throws a
+     * {@see \Recado\Sdk\Exception\RecadoException} carrying status `409` and
+     * code `idempotency_conflict` — retry shortly after.
+     *
+     * @param array<int, array<string, mixed>> $messages 1-100 notification payloads.
+     */
+    public function batch(array $messages, ?string $idempotencyKey = null): NotificationBatchResult
+    {
+        $options = ['json' => ['messages' => array_values($messages)]];
+
+        if ($idempotencyKey !== null) {
+            $options['idempotency_key'] = $idempotencyKey;
+        }
+
+        $response = $this->http->post('notifications/batch', $options);
+
+        return NotificationBatchResult::fromArray($response['data'] ?? []);
     }
 }

@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`NotificationsResource::batch()`** for the new
+  `POST /notifications/batch` endpoint: 1–100 notification payloads per
+  request (10 requests/min per token), each with the same fields as
+  `send()` and defaulting to `['in_app']` when no `channels` are given.
+  Returns a `NotificationBatchResult` (`queued`/`failed` counts of CHANNEL
+  dispatches plus `NotificationBatchItem`s carrying `index`, `to` and the
+  per-channel results). Runtime failures stay per item and per channel, so
+  the endpoint always answers `202`; a malformed item rejects the whole
+  request with a `ValidationException` keyed by index. Supports an optional
+  `$idempotencyKey` (24h replay, its own key namespace, `409`
+  `idempotency_conflict` while in flight).
+
 - **Send options on `/send` and `/send/batch`** (the payload is passed
   through as-is, so no signature changes): `cc`/`bcc` (max 10 each; copies
   never create contacts, suppressed copy addresses are silently dropped),

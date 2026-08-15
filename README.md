@@ -267,6 +267,49 @@ still throws `ValidationException`.
 > **Push prerequisites:** the project must have a push provider configured and
 > the contact must have at least one registered device token (see below).
 
+#### Batch notifications
+
+Send up to **100** notifications in one request (rate limited to **10
+requests/min** per token). Each item takes the same fields as `send()`, and an
+item without `channels` defaults to `['in_app']`:
+
+```php
+$result = $client->notifications()->batch([
+    ['to' => 'jane@example.com', 'title' => 'Shipped', 'body' => 'On its way.'],
+    [
+        'to' => 'john@example.com',
+        'title' => 'Shipped',
+        'body' => 'On its way.',
+        'channels' => ['in_app', 'push'],
+    ],
+], idempotencyKey: 'orders-2026-08-15'); // optional
+
+echo $result->queued; // channel dispatches accepted
+echo $result->failed; // channel dispatches that could not be queued
+
+foreach ($result->messages as $item) {
+    // $item->index, $item->to, $item->anyQueued()
+    $push = $item->channel('push');
+    if ($push && ! $push->queued()) {
+        echo $push->errorCode; // e.g. upgrade_required
+    }
+}
+```
+
+`queued` and `failed` count **channel dispatches, not items**: a two-channel
+item whose push failed contributes to both. Unlike `send()`, the batch endpoint
+always answers `202` — even when nothing at all could be queued — because a
+batch has no single meaningful outcome; the per-channel error codes are the
+same ones listed above (plus `upgrade_required` when the plan does not include
+push). A single malformed item rejects the **whole** request with a
+`ValidationException` keyed by index (e.g. `messages.2.title`).
+
+Idempotency keys work at the batch level (1–255 chars, 24h replay) and live in
+their own namespace, so a `/send/batch` key with the same string is unrelated.
+A retry arriving while the first request is still in flight throws a
+`RecadoException` with status `409` and code `idempotency_conflict`; a batch
+that queued nothing does not consume its key.
+
 ### Push device tokens
 
 Register and remove the device tokens push notifications are delivered to. The
