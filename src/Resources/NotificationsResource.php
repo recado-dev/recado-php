@@ -32,7 +32,15 @@ final readonly class NotificationsResource
      * A real validation 422 (an `errors` map, no `data`) still throws
      * {@see ValidationException}.
      *
-     * @param array<string, mixed> $payload `to`, `title`, `body` plus optional
+     * Content is either an inline `title` + `body` pair or a `template`
+     * slug (a notification template managed in the dashboard) — mutually
+     * exclusive. Template mode resolves the template's locale variants per
+     * recipient and snapshots the content at queue time; the per-send
+     * `action_url`/`icon` override the template defaults. An unknown slug
+     * throws a {@see ValidationException} with code `template_not_found`.
+     *
+     * @param array<string, mixed> $payload `to`, then `title` + `body` or a
+     *                                       `template` slug, plus optional
      *                                       `channels` (defaults to `['in_app']`),
      *                                       `action_url`, `icon`, `variables`.
      */
@@ -60,9 +68,12 @@ final readonly class NotificationsResource
     /**
      * Send a batch of notifications (POST /notifications/batch).
      *
-     * Each item carries the same fields as {@see send()} (`to`, `title`,
-     * `body`, optional `channels` — defaulting to `['in_app']` —,
-     * `action_url`, `icon`, `variables`); 1-100 items per request, rate
+     * Each item carries the same fields as {@see send()} (`to`, then
+     * `title` + `body` or a `template` slug, optional `channels` —
+     * defaulting to `['in_app']` —, `action_url`, `icon`, `variables`;
+     * an item's unknown template slug is a per-channel
+     * `failed_precondition`/`template_not_found` outcome, never an
+     * exception); 1-100 items per request, rate
      * limited at 10 requests/min per token. A single malformed item rejects
      * the WHOLE request with a {@see ValidationException}; runtime outcomes
      * are per item and per channel and never abort the batch, so unlike

@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Notification templates**: `notifications()->send()` and
+  `notifications()->batch()` items accept a `template` slug (+ optional
+  `variables`) as an alternative to inline `title`/`body` — a plain payload
+  pass-through, no signature changes. The API resolves the template's
+  locale variants per recipient and snapshots the content at queue time;
+  per-send `action_url`/`icon` override the template defaults. An unknown
+  slug throws a `ValidationException` with code `template_not_found` on
+  `send()`, and surfaces as a per-item/per-channel
+  `failed_precondition`/`template_not_found` outcome on `batch()`.
+
 ## [2.2.0] - 2026-08-15
 
 ### Added

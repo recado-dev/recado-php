@@ -267,6 +267,33 @@ still throws `ValidationException`.
 > **Push prerequisites:** the project must have a push provider configured and
 > the contact must have at least one registered device token (see below).
 
+#### Notification templates
+
+Instead of inline `title`/`body`, pass a **`template`** slug (a notification
+template managed in the dashboard under Transactional → Notification
+templates) plus optional `variables` — the two content modes are mutually
+exclusive:
+
+```php
+$result = $client->notifications()->send([
+    'to' => 'jane@example.com',
+    'template' => 'order-shipped',
+    'variables' => ['order_id' => 'ord_8842'],
+    'action_url' => 'https://app.example.com/orders/1234', // optional override
+]);
+```
+
+The API resolves the template's **locale variants** per recipient (contact
+locale — exact tag, then language prefix — then the project default locale,
+then the base content) and snapshots the resolved content on the queued
+message, so deleting the template never breaks in-flight sends. The
+template's `action_url`/`icon` act as defaults that a per-send value
+overrides. An unknown slug throws a `ValidationException` with code
+`template_not_found` (like `send()->email()`). Batch items accept the same
+`template` field; there an unknown slug is a **per-item, per-channel
+outcome** (`status` `failed_precondition`, `errorCode` `template_not_found`)
+that never aborts the batch.
+
 #### Batch notifications
 
 Send up to **100** notifications in one request (rate limited to **10
