@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-09-08
+
 > ### ⚠️ Behavior change — read before upgrading
 >
 > The Laravel mail transport (`MAIL_MAILER=recado`) now **forwards the
@@ -63,6 +65,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `reply_to` when the message carries them, so the same content sent from two
   different addresses no longer dedupes to one key. A send without a From keeps
   the key it had before.
+
+- The package now ships its own `pint.json` with `laravel/pint` as a dev
+  dependency and `composer lint` / `composer lint:check` scripts; Pint and the
+  PHPUnit suite run in CI on PHP 8.4 and 8.5 for every change. Source-only —
+  no runtime behavior changed (the accompanying formatting pass is style-only).
 
 ## [2.2.0] - 2026-08-15
 
@@ -321,7 +328,8 @@ the same code and tests, renamed. Everything brand-carrying is breaking:
   (wrappable in a Laravel `LazyCollection`).
 - Read-only campaigns resource (`campaigns()->list()` / `get()` with stats).
 
-[Unreleased]: https://github.com/recado-dev/recado-php/compare/v2.2.0...main
+[Unreleased]: https://github.com/recado-dev/recado-php/compare/v2.3.0...main
+[2.3.0]: https://github.com/recado-dev/recado-php/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/recado-dev/recado-php/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/recado-dev/recado-php/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/recado-dev/recado-php/compare/v1.4.0...v2.0.0
