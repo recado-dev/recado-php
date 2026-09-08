@@ -8,6 +8,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `send()->track()` accepts an optional fourth `$contact` array carrying the
+  contact fields the endpoint applies to the contact it upserts —
+  `first_name`, `last_name`, `name` (split on the first whitespace; the
+  explicit fields win) and the already-supported `locale`. All of them follow
+  the same policy: set on create, updated when provided, never cleared when
+  omitted. The positional `$event`/`$email` and the `data` block always win
+  over a same-named key in the array, and passing only the first three
+  arguments is byte-identical to before.
+- `send()->email()` and `send()->batch()` items accept the same `first_name` /
+  `last_name` / `name` fields (documented pass-through — the payload was
+  already forwarded as-is).
+- The Laravel mail transport forwards the recipient's **display name** as the
+  `/send` `name` field (`->to(new Address('ada@example.com', 'Ada Lovelace'))`),
+  so the platform can fill the contact's first/last name. The name is resolved
+  per recipient on single sends, batch items and the attachment fan-out alike;
+  a recipient without a display name leaves the payload byte-identical, and the
+  name joins the content idempotency key only when present.
+
+### Notes
+
+- The display-name forwarding and the `first_name`/`last_name`/`name` send
+  fields need the platform side of them (`/v1/send`, `/v1/send/batch`) to be
+  live: the API ignores the extra fields until then. **Do not cut 2.4.0 before
+  that lands.** The `track()` `locale` key already works against the current
+  API.
+
 ## [2.3.0] - 2026-09-08
 
 > ### ⚠️ Behavior change — read before upgrading

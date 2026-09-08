@@ -35,11 +35,17 @@ final readonly class SendResource
      * reserved) and `metadata` (up to 10 scalar values, 4 KB serialized;
      * exposed and filterable through the messages endpoints).
      *
+     * Optional contact fields `first_name`, `last_name` and `name` (split on
+     * the first whitespace; the explicit fields win) are applied to the
+     * contact the send upserts: set on create, updated when provided, never
+     * cleared when omitted.
+     *
      * @param  array<string, mixed>  $payload  `to` plus either `template` or
      *                                         `subject`+`body`, optional `text`,
      *                                         `variables`, `attachments`, `cc`,
      *                                         `bcc`, `reply_to`, `from`,
-     *                                         `from_name`, `headers`, `metadata`.
+     *                                         `from_name`, `headers`, `metadata`,
+     *                                         `first_name`, `last_name`, `name`.
      */
     public function email(array $payload, ?string $idempotencyKey = null): SentMessage
     {
@@ -59,7 +65,7 @@ final readonly class SendResource
      *
      * Each item carries the same fields as {@see email()}, including the
      * send options (`cc`, `bcc`, `reply_to`, `from`, `from_name`, `headers`,
-     * `metadata`); an item whose `from` override is not on a verified
+     * `metadata`) and the contact fields (`first_name`, `last_name`, `name`); an item whose `from` override is not on a verified
      * sending domain fails per item with code `sending_domain_not_verified`.
      * The batch endpoint rejects `attachments` on any message (422) — the
      * field is single-send only; use {@see email()} per recipient instead
@@ -83,16 +89,36 @@ final readonly class SendResource
     /**
      * Record an event occurrence for a contact (POST /track).
      *
+     * `$contact` carries the optional TOP-LEVEL contact fields the endpoint
+     * accepts next to the event — `first_name`, `last_name`, `name` (split on
+     * the first whitespace; the explicit fields win) and `locale` — which the
+     * platform applies to the contact the event upserts: set on create,
+     * updated when provided, never cleared when omitted. It is deliberately a
+     * pass-through array (like every other payload in this SDK). Do NOT put
+     * event payload data here: that is `$data`.
+     *
+     * The positional `$event`/`$email` (and the `data` block) always win: a
+     * `$contact` entry with one of those keys is ignored, so the array can
+     * never redirect the call to another contact or event.
+     *
      * @param  array<string, mixed>  $data  Optional event payload.
+     * @param  array<string, mixed>  $contact  Optional contact fields:
+     *                                         `first_name`, `last_name`,
+     *                                         `name`, `locale`.
      * @return array<string, mixed> The `data` block: id, event, email.
      */
-    public function track(string $event, string $email, array $data = []): array
+    public function track(string $event, string $email, array $data = [], array $contact = []): array
     {
         $payload = ['event' => $event, 'email' => $email];
 
         if ($data !== []) {
             $payload['data'] = $data;
         }
+
+        // `+=` keeps the keys already on the payload, so `event`/`email`/`data`
+        // can never be shadowed by a contact field; an empty array leaves the
+        // payload byte-identical to a pre-2.4 track() call.
+        $payload += $contact;
 
         $response = $this->http->post('track', ['json' => $payload]);
 

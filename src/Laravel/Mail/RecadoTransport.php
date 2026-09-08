@@ -34,6 +34,9 @@ use Symfony\Component\Mime\MessageConverter;
  * multi-recipient send that carries attachments fans out as per-recipient
  * single sends because /send/batch rejects attachments; a suppressed recipient
  * is NOT a failure (a {@see MessageSuppressed} event is dispatched);
+ * a recipient's display name (`->to(new Address($email, 'Ada Lovelace'))`) is
+ * forwarded as the /send `name` field so the platform can fill the contact's
+ * first/last name, resolved per recipient on single and batch sends alike;
  * quota/domain rejections ARE failures (raised as a Symfony TransportException
  * so Laravel can retry per its own policy — a `sending_domain_not_verified`
  * rejection gets an actionable message naming the refused address and domain,
@@ -98,7 +101,7 @@ final class RecadoTransport extends AbstractTransport
         $override = $this->header($email, RecadoHeaders::IDEMPOTENCY_KEY);
 
         if (count($recipients) === 1) {
-            $this->sendSingle($recipients[0], $base, $override);
+            $this->sendSingle($recipients[0], $base, $override, $email);
 
             return;
         }
@@ -107,12 +110,12 @@ final class RecadoTransport extends AbstractTransport
             // /send/batch rejects attachments (single-send only on the
             // platform), so a multi-recipient message with attachments fans
             // out as per-recipient single sends instead.
-            $this->sendEachSingle($recipients, $base, $override);
+            $this->sendEachSingle($recipients, $base, $override, $email);
 
             return;
         }
 
-        $this->sendBatch($recipients, $base, $override);
+        $this->sendBatch($recipients, $base, $override, $email);
     }
 
     public function __toString(): string
@@ -147,9 +150,14 @@ final class RecadoTransport extends AbstractTransport
     /**
      * @param  array<string, mixed>  $base
      */
-    private function sendSingle(string $recipient, array $base, ?string $override): void
+    private function sendSingle(string $recipient, array $base, ?string $override, ?Email $email = null): void
     {
-        $payload = ['to' => $recipient] + $base;
+        // The recipient's own display name travels as `name`, so the platform
+        // can fill the contact's first/last name. Absent (or nameless) — the
+        // payload is byte-identical to a pre-name send.
+        $name = $email === null ? [] : PayloadMapper::recipientName($email, $recipient);
+
+        $payload = ['to' => $recipient] + $name + $base;
 
         // Key derived from the full payload (content + this recipient), so two
         // sends of the same content to different recipients get distinct keys
@@ -203,14 +211,14 @@ final class RecadoTransport extends AbstractTransport
      * @param  array<int, string>  $recipients
      * @param  array<string, mixed>  $base
      */
-    private function sendEachSingle(array $recipients, array $base, ?string $override): void
+    private function sendEachSingle(array $recipients, array $base, ?string $override, ?Email $email = null): void
     {
         foreach ($recipients as $recipient) {
             $key = $override === null || $override === ''
                 ? $override
                 : $override.':'.substr(sha1($recipient), 0, 16);
 
-            $this->sendSingle($recipient, $base, $key);
+            $this->sendSingle($recipient, $base, $key, $email);
         }
     }
 
@@ -218,19 +226,39 @@ final class RecadoTransport extends AbstractTransport
      * @param  array<int, string>  $recipients
      * @param  array<string, mixed>  $base
      */
-    private function sendBatch(array $recipients, array $base, ?string $override): void
+    private function sendBatch(array $recipients, array $base, ?string $override, ?Email $email = null): void
     {
         // One shared key across the batch, derived from content + the SORTED
         // recipient list, so a requeued job (same list) dedupes while a batch of
         // the same content to a different list gets a distinct key.
         $canonical = $recipients;
         sort($canonical);
-        $key = IdempotencyKey::compute(['to' => $canonical] + $base, $this->config, $override);
+
+        // The per-recipient display names join the key only when at least one
+        // recipient carries one, so a batch without names keeps the exact key
+        // it had before the transport started forwarding them.
+        $names = [];
+
+        foreach ($canonical as $recipient) {
+            $name = $email === null ? [] : PayloadMapper::recipientName($email, $recipient);
+
+            if ($name !== []) {
+                $names[$recipient] = $name['name'];
+            }
+        }
+
+        $keyPayload = ['to' => $canonical] + ($names === [] ? [] : ['name' => $names]) + $base;
+
+        $key = IdempotencyKey::compute($keyPayload, $this->config, $override);
 
         $messages = [];
 
         foreach ($recipients as $recipient) {
-            $messages[] = ['to' => $recipient] + $base;
+            // Per-item display name: each recipient gets its OWN name, never
+            // the first To's.
+            $name = $email === null ? [] : PayloadMapper::recipientName($email, $recipient);
+
+            $messages[] = ['to' => $recipient] + $name + $base;
         }
 
         try {

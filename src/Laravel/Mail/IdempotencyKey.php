@@ -63,11 +63,13 @@ final class IdempotencyKey
             'to' => $payload['to'] ?? null,
         ];
 
-        // Sender-override fields only join the key when the message actually
-        // carries them, so a send without a From keeps the exact key it had
-        // before the transport started forwarding From/Reply-To. Two sends of
-        // the same content from different addresses must NOT dedupe.
-        foreach (['from', 'from_name', 'reply_to'] as $field) {
+        // Sender-override fields and the recipient display name only join the
+        // key when the message actually carries them, so a send without a From
+        // (or without a display name) keeps the exact key it had before the
+        // transport started forwarding them. Two sends of the same content from
+        // different addresses — or naming the recipient differently — must NOT
+        // dedupe.
+        foreach (['from', 'from_name', 'reply_to', 'name'] as $field) {
             if (isset($payload[$field])) {
                 $canonical[$field] = $payload[$field];
             }

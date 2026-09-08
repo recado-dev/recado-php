@@ -20,8 +20,11 @@ use Symfony\Component\Mime\Part\DataPart;
  * PSR-3 warning, 'fail' throws). The message's own From / From name / Reply-To
  * are forwarded as the `/send` sender override when set (see
  * `recado-sdk.mail.forward_from`); the platform still enforces that the from
- * domain is a verified sending domain of the project. An optional PSR-3 logger
- * receives the attachment-ignore warning and the dropped-value debug logs.
+ * domain is a verified sending domain of the project. A recipient's own display
+ * name is forwarded as the `/send` `name` field so the platform can fill the
+ * contact's first/last name (see {@see recipientName()}). An optional PSR-3
+ * logger receives the attachment-ignore warning and the dropped-value debug
+ * logs.
  */
 final class PayloadMapper
 {
@@ -91,14 +94,55 @@ final class PayloadMapper
 
     /**
      * Build the full /send payload for a single recipient: `to` first, then the
-     * shared content payload.
+     * recipient's display name (when the message carries one) and the shared
+     * content payload.
      *
      * @param  array<string, mixed>  $mailConfig
      * @return array<string, mixed>
      */
     public static function fromEmail(Email $email, string $recipient, array $mailConfig, ?LoggerInterface $logger = null): array
     {
-        return ['to' => $recipient] + self::base($email, $mailConfig, $logger);
+        return ['to' => $recipient]
+            + self::recipientName($email, $recipient)
+            + self::base($email, $mailConfig, $logger);
+    }
+
+    /**
+     * Map the recipient's display name onto the /send `name` field, so the
+     * platform can fill the contact's first/last name on a contact it creates
+     * or updates (`->to(new Address('ada@example.com', 'Ada Lovelace'))` sends
+     * `name: "Ada Lovelace"`).
+     *
+     * The name is resolved PER RECIPIENT: the To, Cc and Bcc addresses of the
+     * message are searched for the given address (case-insensitively) and only
+     * that address's own display name is forwarded — a batch never labels every
+     * recipient with the first To's name. A recipient without a display name
+     * (or an envelope-only recipient that appears on no header) yields an empty
+     * array, so the payload stays byte-identical to a pre-2.4 send.
+     *
+     * @return array{name?: string}
+     */
+    public static function recipientName(Email $email, string $recipient): array
+    {
+        $needle = strtolower(trim($recipient));
+
+        if ($needle === '') {
+            return [];
+        }
+
+        foreach ([$email->getTo(), $email->getCc(), $email->getBcc()] as $addresses) {
+            foreach ($addresses as $address) {
+                if (strtolower($address->getAddress()) !== $needle) {
+                    continue;
+                }
+
+                $name = trim($address->getName());
+
+                return $name === '' ? [] : ['name' => $name];
+            }
+        }
+
+        return [];
     }
 
     /**

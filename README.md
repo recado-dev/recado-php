@@ -384,6 +384,21 @@ $client->send()->batch($messages, idempotencyKey: 'nightly-digest-2026-06-12');
 // Track an event
 $client->send()->track('order.placed', 'jane@example.com', ['total' => 4200]);
 
+// ...and set contact fields on the contact the event upserts (4th argument,
+// optional): `first_name`, `last_name`, `name` and `locale`. Use `name` when
+// you only have the full name — the API splits it on the first whitespace, and
+// explicit `first_name`/`last_name` always win. Every field is set on create,
+// updated when provided, and never cleared when omitted.
+$client->send()->track('signed-up', 'jane@example.com', [], [
+    'first_name' => 'Jane',
+    'last_name' => 'Doe',
+    'locale' => 'es-MX',
+]);
+$client->send()->track('signed-up', 'ada@example.com', [], ['name' => 'Ada Lovelace']);
+
+// The positional arguments always win: an `email`/`event`/`data` key in the
+// contact array is ignored, never a way to redirect the call.
+
 // Subscribe a contact (double opt-in aware)
 $client->send()->subscribe([
     'email' => 'jane@example.com',
@@ -792,6 +807,15 @@ with explicit, documented behavior rather than silent surprises.
   dashboard. Set `recado-sdk.mail.forward_from` to `false` (env
   `RECADO_MAIL_FORWARD_FROM=false`) to restore the old behavior and always send
   as the project's configured sender.
+- **The recipient's display name is forwarded.** `->to(new Address('ada@example.com',
+  'Ada Lovelace'))` sends `name: "Ada Lovelace"` on the `/send` payload, so the
+  platform fills the first/last name of the contact it creates or updates. The
+  name is resolved **per recipient** (the To/Cc/Bcc address matching that
+  recipient), on single sends and batch items alike — a batch never labels
+  everyone with the first To's name. A recipient without a display name adds
+  nothing to the payload, and the name only joins the content idempotency key
+  when it is actually present, so sends without display names keep the exact
+  key they had before.
 - **Attachments are sent by default.** They are mapped onto the `/send`
   `attachments` field (see **Attachments** above for modes, limits, the
   filename blocklist and the batch fan-out). Consumers who relied on the old
