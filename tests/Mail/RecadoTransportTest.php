@@ -19,7 +19,7 @@ use Symfony\Component\Mime\Email;
 
 final class RecadoTransportTest extends TestCase
 {
-    public function test_single_recipient_posts_to_send_without_from_or_reply_to(): void
+    public function test_single_recipient_posts_to_send_with_the_message_sender(): void
     {
         $history = [];
         $client = $this->clientWithResponses([
@@ -48,8 +48,9 @@ final class RecadoTransportTest extends TestCase
         $this->assertSame('Hello', $payload['subject']);
         $this->assertSame('<p>Hi</p>', $payload['body']);
         $this->assertSame('Hi', $payload['text']);
-        $this->assertArrayNotHasKey('from', $payload);
-        $this->assertArrayNotHasKey('reply_to', $payload);
+        $this->assertSame('sender@example.com', $payload['from']);
+        $this->assertSame('reply@example.com', $payload['reply_to']);
+        $this->assertArrayNotHasKey('from_name', $payload);
     }
 
     public function test_multiple_recipients_post_to_batch_with_one_message_each(): void

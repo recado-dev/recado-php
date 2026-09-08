@@ -75,9 +75,23 @@ return [
     |     'random'  — a fresh UUID per send attempt (disables retry dedup).
     |     'off'     — no idempotency key.
     |
+    | forward_from: whether the message's own From / From name / Reply-To are
+    |   forwarded to the API as the per-send sender override.
+    |     true  — (default) a Mailable calling ->from(...) / ->replyTo(...) sends
+    |             as that address, which is what a Laravel app expects and the
+    |             only way one project can send from several senders. The from
+    |             domain must be a verified sending domain of the project or the
+    |             API rejects the send with 422 `sending_domain_not_verified`
+    |             (surfaced as a TransportException). A message without a From is
+    |             unaffected: the project's configured sender applies.
+    |     false — drop them (with a debug log) so the project's configured sender
+    |             always wins, e.g. when the app's Mailables set a From address
+    |             that is not verified on the project.
+    |
     */
     'mail' => [
         'attachments' => env('RECADO_MAIL_ATTACHMENTS', 'send'),
         'idempotency' => env('RECADO_MAIL_IDEMPOTENCY', 'content'),
+        'forward_from' => (bool) env('RECADO_MAIL_FORWARD_FROM', true),
     ],
 ];

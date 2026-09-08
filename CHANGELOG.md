@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+> ### ⚠️ Behavior change — read before upgrading
+>
+> The Laravel mail transport (`MAIL_MAILER=recado`) now **forwards the
+> message's own From address** to the API instead of dropping it. Laravel
+> stamps the app's global `mail.from` on every message, so **if that address's
+> domain is not a verified sending domain of your Recado project, every send
+> starts failing with `422 sending_domain_not_verified`** (raised as a
+> `TransportException` with an actionable message).
+>
+> Two ways forward:
+>
+> 1. **Recommended** — add and verify each sender's domain under *Settings →
+>    Sending domains*. You then get what this change is for: several senders on
+>    one project, with `->from(...)` on a Mailable actually honoured.
+> 2. **Opt out** — set `RECADO_MAIL_FORWARD_FROM=false` (config
+>    `recado-sdk.mail.forward_from`) to keep the previous behavior: From and
+>    Reply-To are dropped and the project's `default_from_email` always wins.
+
 ### Added
 
 - **Notification templates**: `notifications()->send()` and
@@ -19,6 +37,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   slug throws a `ValidationException` with code `template_not_found` on
   `send()`, and surfaces as a per-item/per-channel
   `failed_precondition`/`template_not_found` outcome on `batch()`.
+
+### Changed
+
+- **The Laravel mail transport now forwards the message's own sender.** A
+  Mailable calling `->from(...)` / `->replyTo(...)` is mapped onto the `/send`
+  `from`, `from_name` and `reply_to` fields (single sends and batch items
+  alike), so one project can send from several verified addresses instead of
+  always using its `default_from_email`. **Behavior change**: Laravel stamps
+  the app's global `mail.from` on every message, so sends that previously went
+  out as the project sender now go out as that address — its domain must be a
+  verified sending domain of the project or the API answers `422`
+  `sending_domain_not_verified` (re-thrown as a `TransportException`). Set
+  `recado-sdk.mail.forward_from` to `false` (env
+  `RECADO_MAIL_FORWARD_FROM=false`) to keep the previous behavior. A message
+  with no From/Reply-To produces exactly the payload it did before.
+
+- **Actionable `sending_domain_not_verified` errors.** A rejected sender now
+  raises a `TransportException` naming the refused address, its domain and the
+  two ways out (verify the domain, or disable `forward_from`) instead of a
+  generic "platform rejected the send" line — on the single-send, whole-batch
+  and per-batch-item paths. Other `422` codes keep their existing message.
+
+- The transport's content idempotency key folds in `from`/`from_name`/
+  `reply_to` when the message carries them, so the same content sent from two
+  different addresses no longer dedupes to one key. A send without a From keeps
+  the key it had before.
 
 ## [2.2.0] - 2026-08-15
 

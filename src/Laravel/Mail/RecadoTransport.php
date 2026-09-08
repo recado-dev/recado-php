@@ -24,14 +24,20 @@ use Symfony\Component\Mime\MessageConverter;
  * provider, so an app uses it with MAIL_MAILER=recado.
  *
  * Behavior is documented in the README "Laravel integration" section. Key
- * decisions: From/Reply-To are ignored (the platform uses the project's
- * configured sender); attachments are mapped to the /send `attachments` field
+ * decisions: the message's From / From name / Reply-To are forwarded as the
+ * /send sender override (a message without a From keeps using the project's
+ * configured sender, and the platform still rejects a from address whose domain
+ * is not a verified sending domain of the project with `422
+ * sending_domain_not_verified`; set `recado-sdk.mail.forward_from` to false to
+ * always use the project sender); attachments are mapped to the /send `attachments` field
  * by default ('send' mode — 'fail'/'ignore' restore the legacy behavior); a
  * multi-recipient send that carries attachments fans out as per-recipient
  * single sends because /send/batch rejects attachments; a suppressed recipient
  * is NOT a failure (a {@see MessageSuppressed} event is dispatched);
  * quota/domain rejections ARE failures (raised as a Symfony TransportException
- * so Laravel can retry per its own policy).
+ * so Laravel can retry per its own policy — a `sending_domain_not_verified`
+ * rejection gets an actionable message naming the refused address and domain,
+ * on the single, whole-batch and per-batch-item paths alike).
  */
 final class RecadoTransport extends AbstractTransport
 {
@@ -41,14 +47,23 @@ final class RecadoTransport extends AbstractTransport
      */
     private const SUPPRESSED_CODE = 'recipient_suppressed';
 
+    /**
+     * The platform refused the sender: the from address the transport forwarded
+     * does not belong to a verified sending domain of the project. Worth its own
+     * actionable message because the transport is what put that address on the
+     * payload (from the Mailable, or the app's global mail.from).
+     */
+    private const UNVERIFIED_DOMAIN_CODE = 'sending_domain_not_verified';
+
     private readonly ?Dispatcher $events;
 
     private readonly ?LoggerInterface $transportLogger;
 
     /**
      * @param array<string, mixed> $config The `recado-sdk.mail` config block:
-     *                                      `attachments` ('send'|'fail'|'ignore')
-     *                                      and `idempotency` ('content'|'random'|'off').
+     *                                      `attachments` ('send'|'fail'|'ignore'),
+     *                                      `idempotency` ('content'|'random'|'off')
+     *                                      and `forward_from` (bool).
      */
     public function __construct(
         private readonly RecadoClient $client,
@@ -155,6 +170,14 @@ final class RecadoTransport extends AbstractTransport
                 return;
             }
 
+            if ($e->getErrorCode() === self::UNVERIFIED_DOMAIN_CODE) {
+                throw new TransportException(
+                    self::unverifiedDomainMessage($payload['from'] ?? null),
+                    0,
+                    $e,
+                );
+            }
+
             throw new TransportException(
                 'Recado platform rejected the send for '.$recipient.': '.$e->getMessage(),
                 0,
@@ -213,6 +236,14 @@ final class RecadoTransport extends AbstractTransport
         try {
             $result = $this->client->send()->batch($messages, $key);
         } catch (RecadoException $e) {
+            if ($e->getErrorCode() === self::UNVERIFIED_DOMAIN_CODE) {
+                throw new TransportException(
+                    self::unverifiedDomainMessage($base['from'] ?? null),
+                    0,
+                    $e,
+                );
+            }
+
             throw new TransportException(
                 'Recado platform batch send failed: '.$e->getMessage(),
                 0,
@@ -220,7 +251,7 @@ final class RecadoTransport extends AbstractTransport
             );
         }
 
-        $this->handleBatchResult($result, $recipients);
+        $this->handleBatchResult($result, $recipients, $base['from'] ?? null);
     }
 
     /**
@@ -230,9 +261,10 @@ final class RecadoTransport extends AbstractTransport
      *
      * @param array<int, string> $recipients
      */
-    private function handleBatchResult(BatchResult $result, array $recipients): void
+    private function handleBatchResult(BatchResult $result, array $recipients, mixed $from = null): void
     {
         $failures = [];
+        $unverifiedDomain = false;
 
         foreach ($result->messages as $item) {
             $recipient = $this->recipientForIndex($item->index, $recipients);
@@ -251,14 +283,49 @@ final class RecadoTransport extends AbstractTransport
             if ($item->status === 'failed') {
                 $label = $recipient ?? ('#'.($item->index ?? '?'));
                 $failures[] = $label.' ('.($item->code ?? $item->error ?? 'failed').')';
+
+                if ($item->code === self::UNVERIFIED_DOMAIN_CODE) {
+                    $unverifiedDomain = true;
+                }
             }
         }
 
         if ($failures !== []) {
-            throw new TransportException(
-                'Recado platform batch send failed for: '.implode(', ', $failures).'.',
-            );
+            $message = 'Recado platform batch send failed for: '.implode(', ', $failures).'.';
+
+            // A per-item sender rejection has the same cause and the same fix as
+            // the single-send one, so it earns the same actionable hint.
+            if ($unverifiedDomain) {
+                $message .= ' '.self::unverifiedDomainMessage($from);
+            }
+
+            throw new TransportException($message);
         }
+    }
+
+    /**
+     * Actionable message for a `sending_domain_not_verified` rejection: which
+     * address was refused, which domain has to be verified, and the two ways
+     * out (verify it, or stop forwarding the message From).
+     */
+    private static function unverifiedDomainMessage(mixed $from): string
+    {
+        $address = is_string($from) && $from !== '' ? $from : null;
+
+        if ($address === null) {
+            return 'Recado rejected the sender: its domain is not a verified sending domain of '
+                .'this project. Verify it under Settings → Sending domains, or remove the From '
+                .'override (set RECADO_MAIL_FORWARD_FROM=false to fall back to the project '
+                .'default sender).';
+        }
+
+        $at = strrpos($address, '@');
+        $domain = $at === false ? $address : substr($address, $at + 1);
+
+        return 'Recado rejected the sender "'.$address.'": the domain "'.$domain.'" is not a '
+            .'verified sending domain of this project. Verify it under Settings → Sending '
+            .'domains, or remove the From override (set RECADO_MAIL_FORWARD_FROM=false to fall '
+            .'back to the project default sender).';
     }
 
     /**

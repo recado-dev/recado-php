@@ -63,6 +63,16 @@ final class IdempotencyKey
             'to' => $payload['to'] ?? null,
         ];
 
+        // Sender-override fields only join the key when the message actually
+        // carries them, so a send without a From keeps the exact key it had
+        // before the transport started forwarding From/Reply-To. Two sends of
+        // the same content from different addresses must NOT dedupe.
+        foreach (['from', 'from_name', 'reply_to'] as $field) {
+            if (isset($payload[$field])) {
+                $canonical[$field] = $payload[$field];
+            }
+        }
+
         ksort($canonical);
 
         $hash = hash('sha256', (string) json_encode($canonical));

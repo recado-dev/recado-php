@@ -17,8 +17,11 @@ use Symfony\Component\Mime\Part\DataPart;
  * subject/body one; in both cases the message's attachments are mapped to the
  * /send `attachments` field per the configured mode (see
  * `recado-sdk.mail.attachments`: 'send' maps them, 'ignore' drops them with a
- * PSR-3 warning, 'fail' throws). An optional PSR-3 logger receives the
- * attachment-ignore warning and the From-set debug log.
+ * PSR-3 warning, 'fail' throws). The message's own From / From name / Reply-To
+ * are forwarded as the `/send` sender override when set (see
+ * `recado-sdk.mail.forward_from`); the platform still enforces that the from
+ * domain is a verified sending domain of the project. An optional PSR-3 logger
+ * receives the attachment-ignore warning and the dropped-value debug logs.
  */
 final class PayloadMapper
 {
@@ -38,7 +41,9 @@ final class PayloadMapper
     /**
      * Build the content payload shared by every recipient (no `to` key). Either
      * a template payload or an inline subject/body one, plus the mapped
-     * `attachments` when the message carries any and the mode allows sending.
+     * `attachments` when the message carries any and the mode allows sending,
+     * plus the `from`/`from_name`/`reply_to` sender override when the message
+     * carries one.
      *
      * @param array<string, mixed> $mailConfig
      *
@@ -47,7 +52,7 @@ final class PayloadMapper
     public static function base(Email $email, array $mailConfig, ?LoggerInterface $logger = null): array
     {
         $attachments = self::attachments($email, $mailConfig, $logger);
-        self::warnIfFromIsSet($email, $logger);
+        $sender = self::sender($email, $mailConfig, $logger);
 
         $template = self::header($email, RecadoHeaders::TEMPLATE);
 
@@ -57,7 +62,7 @@ final class PayloadMapper
                 'variables' => self::variables($email),
             ];
 
-            return self::withAttachments($payload, $attachments);
+            return self::withAttachments($payload + $sender, $attachments);
         }
 
         $html = $email->getHtmlBody();
@@ -82,7 +87,7 @@ final class PayloadMapper
             $payload['variables'] = $variables;
         }
 
-        return self::withAttachments($payload, $attachments);
+        return self::withAttachments($payload + $sender, $attachments);
     }
 
     /**
@@ -197,14 +202,73 @@ final class PayloadMapper
         return $payload;
     }
 
-    private static function warnIfFromIsSet(Email $email, ?LoggerInterface $logger): void
+    /**
+     * Map the message's own sender onto the /send sender-override fields:
+     * `from` + `from_name` from the first From address and `reply_to` from the
+     * first Reply-To address. A message that sets neither yields an empty array,
+     * so its payload stays byte-identical to a pre-1.6 send and the project's
+     * configured sender keeps applying server-side.
+     *
+     * The API takes ONE address per field, so any extra From/Reply-To address is
+     * dropped with a PSR-3 debug log. Setting `recado-sdk.mail.forward_from` to
+     * false restores the legacy behavior (nothing forwarded, one debug log).
+     *
+     * The platform still validates the effective from address against the
+     * project's verified sending domains and answers `422
+     * sending_domain_not_verified` when it does not belong to one.
+     *
+     * @param array<string, mixed> $mailConfig
+     *
+     * @return array<string, mixed>
+     */
+    private static function sender(Email $email, array $mailConfig, ?LoggerInterface $logger): array
     {
-        if ($email->getFrom() !== []) {
-            $logger?->debug(
-                'Recado SDK transport: ignoring the message From address; the platform uses the '
-                ."project's configured sender.",
-            );
+        $from = $email->getFrom();
+        $replyTo = $email->getReplyTo();
+
+        if (($mailConfig['forward_from'] ?? true) === false) {
+            if ($from !== [] || $replyTo !== []) {
+                $logger?->debug(
+                    'Recado SDK transport: dropping the message From/Reply-To addresses — '
+                    .'recado-sdk.mail.forward_from is disabled; the platform uses the '
+                    ."project's configured sender.",
+                );
+            }
+
+            return [];
         }
+
+        $sender = [];
+
+        if ($from !== []) {
+            $sender['from'] = $from[0]->getAddress();
+
+            $name = $from[0]->getName();
+
+            if ($name !== '') {
+                $sender['from_name'] = $name;
+            }
+
+            if (count($from) > 1) {
+                $logger?->debug(
+                    'Recado SDK transport: the message carries several From addresses; '
+                    .'only the first one is sent.',
+                );
+            }
+        }
+
+        if ($replyTo !== []) {
+            $sender['reply_to'] = $replyTo[0]->getAddress();
+
+            if (count($replyTo) > 1) {
+                $logger?->debug(
+                    'Recado SDK transport: the message carries several Reply-To addresses; '
+                    .'only the first one is sent.',
+                );
+            }
+        }
+
+        return $sender;
     }
 
     /**

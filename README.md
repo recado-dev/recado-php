@@ -640,6 +640,7 @@ RECADO_RETRY_MAX_DELAY=5000
 # Mail transport behavior
 RECADO_MAIL_ATTACHMENTS=send        # send | fail | ignore
 RECADO_MAIL_IDEMPOTENCY=content     # content | random | off
+RECADO_MAIL_FORWARD_FROM=true       # forward the message From/Reply-To
 ```
 
 Resolve the client from the container:
@@ -769,10 +770,28 @@ Platform limits (validated server-side, one guard duplicated client-side):
 The platform `/send` API is intentionally narrow; the transport adapts to it
 with explicit, documented behavior rather than silent surprises.
 
-- **From / Reply-To are ignored.** The API does not accept `from` or `reply_to`
-  — the platform always uses the project's configured sender (set the project
-  `default_from_email`/`default_from_name` and a verified sending domain in the
-  dashboard). A `From` set on the message is logged at debug level and dropped.
+- **From / Reply-To are forwarded.** A message that sets its own sender
+  (`->from('alex@example.com', 'Alex')`, `->replyTo(...)`) is sent with that
+  address: the transport maps it onto the `/send` `from`, `from_name` and
+  `reply_to` fields, on single sends and on batch items alike. A message that
+  sets neither is unchanged — the project's configured sender
+  (`default_from_email`/`default_from_name`) applies as before. The API takes
+  one address per field, so extra From/Reply-To addresses are dropped with a
+  debug log.
+  **The from domain must be a verified sending domain of the project**: the
+  platform rejects anything else with `422 sending_domain_not_verified`, which
+  the transport re-throws as a `TransportException` naming the refused address
+  and domain and how to fix it:
+  > Recado rejected the sender "alex@example.com": the domain "example.com" is
+  > not a verified sending domain of this project. Verify it under Settings →
+  > Sending domains, or remove the From override (set
+  > `RECADO_MAIL_FORWARD_FROM=false` to fall back to the project default
+  > sender).
+
+  Add and verify each sender's domain under *Sending domains* in the
+  dashboard. Set `recado-sdk.mail.forward_from` to `false` (env
+  `RECADO_MAIL_FORWARD_FROM=false`) to restore the old behavior and always send
+  as the project's configured sender.
 - **Attachments are sent by default.** They are mapped onto the `/send`
   `attachments` field (see **Attachments** above for modes, limits, the
   filename blocklist and the batch fan-out). Consumers who relied on the old
