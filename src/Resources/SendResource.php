@@ -14,9 +14,7 @@ use Recado\Sdk\Http\HttpClient;
  */
 final readonly class SendResource
 {
-    public function __construct(private HttpClient $http)
-    {
-    }
+    public function __construct(private HttpClient $http) {}
 
     /**
      * Send a single transactional email (POST /send).
@@ -37,11 +35,11 @@ final readonly class SendResource
      * reserved) and `metadata` (up to 10 scalar values, 4 KB serialized;
      * exposed and filterable through the messages endpoints).
      *
-     * @param array<string, mixed> $payload `to` plus either `template` or
-     *                                       `subject`+`body`, optional `text`,
-     *                                       `variables`, `attachments`, `cc`,
-     *                                       `bcc`, `reply_to`, `from`,
-     *                                       `from_name`, `headers`, `metadata`.
+     * @param  array<string, mixed>  $payload  `to` plus either `template` or
+     *                                         `subject`+`body`, optional `text`,
+     *                                         `variables`, `attachments`, `cc`,
+     *                                         `bcc`, `reply_to`, `from`,
+     *                                         `from_name`, `headers`, `metadata`.
      */
     public function email(array $payload, ?string $idempotencyKey = null): SentMessage
     {
@@ -67,7 +65,7 @@ final readonly class SendResource
      * field is single-send only; use {@see email()} per recipient instead
      * (the Laravel mail transport does that fan-out automatically).
      *
-     * @param array<int, array<string, mixed>> $messages 1-100 message payloads.
+     * @param  array<int, array<string, mixed>>  $messages  1-100 message payloads.
      */
     public function batch(array $messages, ?string $idempotencyKey = null): BatchResult
     {
@@ -85,8 +83,7 @@ final readonly class SendResource
     /**
      * Record an event occurrence for a contact (POST /track).
      *
-     * @param array<string, mixed> $data Optional event payload.
-     *
+     * @param  array<string, mixed>  $data  Optional event payload.
      * @return array<string, mixed> The `data` block: id, event, email.
      */
     public function track(string $event, string $email, array $data = []): array
@@ -105,10 +102,9 @@ final readonly class SendResource
     /**
      * Subscribe a contact (POST /contacts/subscribe).
      *
-     * @param array<string, mixed> $payload `email` plus optional first_name,
-     *                                       last_name, locale, attributes,
-     *                                       lists, tags.
-     *
+     * @param  array<string, mixed>  $payload  `email` plus optional first_name,
+     *                                         last_name, locale, attributes,
+     *                                         lists, tags.
      * @return array<string, mixed> The `data` block: id, email, status.
      */
     public function subscribe(array $payload): array

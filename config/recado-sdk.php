@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use Recado\Sdk\RecadoClient;
 
 return [
     /*
@@ -20,7 +21,7 @@ return [
     | RecadoClient throw a RecadoConfigurationException at construction.
     |
     */
-    'base_url' => env('RECADO_BASE_URL', \Recado\Sdk\RecadoClient::DEFAULT_BASE_URL),
+    'base_url' => env('RECADO_BASE_URL', RecadoClient::DEFAULT_BASE_URL),
 
     /*
     |--------------------------------------------------------------------------

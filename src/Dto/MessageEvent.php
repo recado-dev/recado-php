@@ -10,17 +10,16 @@ namespace Recado\Sdk\Dto;
 final readonly class MessageEvent
 {
     /**
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     public function __construct(
         public ?string $type,
         public array $payload,
         public ?string $occurredAt,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {

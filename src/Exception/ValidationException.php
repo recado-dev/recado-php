@@ -13,8 +13,8 @@ use Throwable;
 class ValidationException extends RecadoException
 {
     /**
-     * @param array<string, array<int, string>> $errors Field => list of messages.
-     * @param array<string, mixed>|null         $body   The raw decoded response envelope.
+     * @param  array<string, array<int, string>>  $errors  Field => list of messages.
+     * @param  array<string, mixed>|null  $body  The raw decoded response envelope.
      */
     public function __construct(
         string $message,

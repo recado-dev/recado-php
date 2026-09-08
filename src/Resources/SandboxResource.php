@@ -31,19 +31,17 @@ final readonly class SandboxResource
 
     public const string EVENT_READ = 'read';
 
-    public function __construct(private HttpClient $http)
-    {
-    }
+    public function __construct(private HttpClient $http) {}
 
     /**
      * Simulate an event on a sandbox message.
      *
-     * @param string      $event     One of the EVENT_* constants (plain
-     *                                strings are accepted too).
-     * @param int|null    $linkIndex Which tracked link a click hit; index 0 is
-     *                                valid and sent whenever non-null.
-     * @param string|null $url       Explicit URL for a click, when not using an
-     *                                index.
+     * @param  string  $event  One of the EVENT_* constants (plain
+     *                         strings are accepted too).
+     * @param  int|null  $linkIndex  Which tracked link a click hit; index 0 is
+     *                               valid and sent whenever non-null.
+     * @param  string|null  $url  Explicit URL for a click, when not using an
+     *                            index.
      */
     public function simulate(string $uuid, string $event, ?int $linkIndex = null, ?string $url = null): SimulatedEvent
     {

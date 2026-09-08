@@ -25,11 +25,10 @@ final readonly class CampaignStats
         public ?float $openRate,
         public ?float $clickRate,
         public ?float $clickToOpenRate,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {

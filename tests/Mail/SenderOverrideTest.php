@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Recado\Sdk\Tests\Mail;
 
+use Psr\Http\Message\RequestInterface;
 use Recado\Sdk\Exception\ValidationException;
 use Recado\Sdk\Laravel\Mail\PayloadMapper;
 use Recado\Sdk\Laravel\Mail\RecadoHeaders;
@@ -335,8 +336,7 @@ final class SenderOverrideTest extends TestCase
     /**
      * Decode the JSON body of the request captured at the given history index.
      *
-     * @param array<int, array{request: \Psr\Http\Message\RequestInterface}> $history
-     *
+     * @param  array<int, array{request: RequestInterface}>  $history
      * @return array<string, mixed>
      */
     private function body(array $history, int $index): array

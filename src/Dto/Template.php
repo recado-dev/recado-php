@@ -11,7 +11,7 @@ namespace Recado\Sdk\Dto;
 final readonly class Template
 {
     /**
-     * @param array<int, TemplateVariant> $variants
+     * @param  array<int, TemplateVariant>  $variants
      */
     public function __construct(
         public ?string $slug,
@@ -22,11 +22,10 @@ final readonly class Template
         public array $variants,
         public ?string $createdAt,
         public ?string $updatedAt,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {

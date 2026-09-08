@@ -18,15 +18,12 @@ final readonly class CampaignsResource
 {
     use PaginatesResults;
 
-    public function __construct(private HttpClient $http)
-    {
-    }
+    public function __construct(private HttpClient $http) {}
 
     /**
      * List campaigns (GET /campaigns). List items do not embed stats.
      *
-     * @param array<string, mixed> $query per_page, page.
-     *
+     * @param  array<string, mixed>  $query  per_page, page.
      * @return Paginated<Campaign>
      */
     public function list(array $query = []): Paginated
@@ -39,8 +36,7 @@ final readonly class CampaignsResource
     /**
      * Lazily iterate every campaign across all pages (GET /campaigns).
      *
-     * @param array<string, mixed> $query per_page (page is managed automatically).
-     *
+     * @param  array<string, mixed>  $query  per_page (page is managed automatically).
      * @return \Generator<int, Campaign>
      */
     public function cursor(array $query = []): \Generator

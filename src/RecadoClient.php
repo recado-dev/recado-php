@@ -72,11 +72,11 @@ final class RecadoClient
     private ?SandboxResource $sandbox = null;
 
     /**
-     * @param array<string, mixed> $options Transport/resilience options applied
-     *                                       only when no client is injected:
-     *                                       `retries`, `retry_base_delay`,
-     *                                       `retry_max_delay`, `retry_on_status`,
-     *                                       `timeout`, `connect_timeout`.
+     * @param  array<string, mixed>  $options  Transport/resilience options applied
+     *                                         only when no client is injected:
+     *                                         `retries`, `retry_base_delay`,
+     *                                         `retry_max_delay`, `retry_on_status`,
+     *                                         `timeout`, `connect_timeout`.
      */
     public function __construct(
         string $baseUrl,

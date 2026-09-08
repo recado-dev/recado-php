@@ -14,14 +14,13 @@ namespace Recado\Sdk\Laravel\Events;
 final class MessageSuppressed
 {
     /**
-     * @param string                    $recipient The suppressed email address.
-     * @param string|null               $reason    The API error code/reason, e.g. "recipient_suppressed".
-     * @param array<string, mixed>|null $body      The raw decoded API response (single send) when available.
+     * @param  string  $recipient  The suppressed email address.
+     * @param  string|null  $reason  The API error code/reason, e.g. "recipient_suppressed".
+     * @param  array<string, mixed>|null  $body  The raw decoded API response (single send) when available.
      */
     public function __construct(
         public readonly string $recipient,
         public readonly ?string $reason = null,
         public readonly ?array $body = null,
-    ) {
-    }
+    ) {}
 }

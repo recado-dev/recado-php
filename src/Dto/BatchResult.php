@@ -10,17 +10,16 @@ namespace Recado\Sdk\Dto;
 final readonly class BatchResult
 {
     /**
-     * @param array<int, BatchItem> $messages
+     * @param  array<int, BatchItem>  $messages
      */
     public function __construct(
         public array $messages,
         public int $queued,
         public int $failed,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {

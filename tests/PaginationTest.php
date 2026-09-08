@@ -9,9 +9,8 @@ use Recado\Sdk\Dto\Contact;
 final class PaginationTest extends TestCase
 {
     /**
-     * @param array<int, array<string, mixed>> $contacts
-     * @param array<string, mixed>             $extra
-     *
+     * @param  array<int, array<string, mixed>>  $contacts
+     * @param  array<string, mixed>  $extra
      * @return array<string, mixed>
      */
     private function contactsPage(array $contacts, int $currentPage, int $lastPage, array $extra = []): array
@@ -24,8 +23,6 @@ final class PaginationTest extends TestCase
     }
 
     /**
-     * @param int|string $id
-     *
      * @return array<string, mixed>
      */
     private function contact(int|string $id): array

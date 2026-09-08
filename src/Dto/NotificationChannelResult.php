@@ -15,11 +15,10 @@ final readonly class NotificationChannelResult
         public ?string $id,
         public ?string $status,
         public ?string $errorCode,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {

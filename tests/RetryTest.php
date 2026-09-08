@@ -20,9 +20,9 @@ final class RetryTest extends TestCase
      * Build a RecadoClient whose transport replays the queued responses through
      * a handler stack carrying the retry middleware, capturing every attempt.
      *
-     * @param array<int, mixed>   $responses
-     * @param array<string, mixed> $config
-     * @param array<int, mixed>   $history
+     * @param  array<int, mixed>  $responses
+     * @param  array<string, mixed>  $config
+     * @param  array<int, mixed>  $history
      */
     private function clientWithRetry(array $responses, array $config, array &$history): RecadoClient
     {

@@ -17,15 +17,12 @@ final readonly class ListsResource
 {
     use PaginatesResults;
 
-    public function __construct(private HttpClient $http)
-    {
-    }
+    public function __construct(private HttpClient $http) {}
 
     /**
      * List contact lists (GET /lists).
      *
-     * @param array<string, mixed> $query
-     *
+     * @param  array<string, mixed>  $query
      * @return Paginated<ContactList>
      */
     public function list(array $query = []): Paginated
@@ -38,8 +35,7 @@ final readonly class ListsResource
     /**
      * Lazily iterate every contact list across all pages (GET /lists).
      *
-     * @param array<string, mixed> $query per_page (page is managed automatically).
-     *
+     * @param  array<string, mixed>  $query  per_page (page is managed automatically).
      * @return \Generator<int, ContactList>
      */
     public function cursor(array $query = []): \Generator
@@ -68,8 +64,7 @@ final readonly class ListsResource
     /**
      * List a list's contacts (GET /lists/{id}/contacts).
      *
-     * @param array<string, mixed> $query
-     *
+     * @param  array<string, mixed>  $query
      * @return Paginated<Contact>
      */
     public function contacts(int $listId, array $query = []): Paginated
@@ -83,8 +78,7 @@ final readonly class ListsResource
      * Lazily iterate every contact of a list across all pages
      * (GET /lists/{id}/contacts).
      *
-     * @param array<string, mixed> $query per_page (page is managed automatically).
-     *
+     * @param  array<string, mixed>  $query  per_page (page is managed automatically).
      * @return \Generator<int, Contact>
      */
     public function contactsCursor(int $listId, array $query = []): \Generator

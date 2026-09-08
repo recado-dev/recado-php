@@ -13,9 +13,7 @@ use Recado\Sdk\Http\HttpClient;
  */
 final readonly class PushTokensResource
 {
-    public function __construct(private HttpClient $http)
-    {
-    }
+    public function __construct(private HttpClient $http) {}
 
     /**
      * Register a push device token for a contact (POST /push/tokens).
@@ -28,7 +26,7 @@ final readonly class PushTokensResource
      * separate VAPID subscription endpoint, so `web` is not a valid platform
      * here — passing it yields a 422.
      *
-     * @param string $platform One of `ios`, `android`.
+     * @param  string  $platform  One of `ios`, `android`.
      */
     public function register(string $email, string $token, string $platform): PushTokenResult
     {

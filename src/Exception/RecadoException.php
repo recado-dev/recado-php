@@ -17,7 +17,7 @@ use Throwable;
 class RecadoException extends RuntimeException
 {
     /**
-     * @param array<string, mixed>|null $body The raw decoded response envelope.
+     * @param  array<string, mixed>|null  $body  The raw decoded response envelope.
      */
     public function __construct(
         string $message,

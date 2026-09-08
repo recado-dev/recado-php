@@ -14,17 +14,16 @@ namespace Recado\Sdk\Dto;
 final readonly class NotificationBatchItem
 {
     /**
-     * @param array<int, NotificationChannelResult> $results
+     * @param  array<int, NotificationChannelResult>  $results
      */
     public function __construct(
         public ?int $index,
         public ?string $to,
         public array $results,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {

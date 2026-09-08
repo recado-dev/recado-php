@@ -7,13 +7,13 @@ namespace Recado\Sdk\Laravel\Notifications;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Contracts\Mail\Mailable;
 use Illuminate\Notifications\Notification;
+use Psr\Log\LoggerInterface;
 use Recado\Sdk\Exception\ValidationException;
 use Recado\Sdk\Laravel\Events\MessageSuppressed;
 use Recado\Sdk\Laravel\Mail\IdempotencyKey;
-use Recado\Sdk\Laravel\Mail\RecadoMessage;
 use Recado\Sdk\Laravel\Mail\PayloadMapper;
+use Recado\Sdk\Laravel\Mail\RecadoMessage;
 use Recado\Sdk\RecadoClient;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Mime\Email;
 
 /**
@@ -45,18 +45,17 @@ final class RecadoChannel
     private const SUPPRESSED_CODE = 'recipient_suppressed';
 
     /**
-     * @param array<string, mixed> $mailConfig The `recado-sdk.mail` config block.
+     * @param  array<string, mixed>  $mailConfig  The `recado-sdk.mail` config block.
      */
     public function __construct(
         private readonly RecadoClient $client,
         private readonly array $mailConfig = [],
         private readonly ?Dispatcher $events = null,
         private readonly ?LoggerInterface $logger = null,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param mixed $notifiable
+     * @param  mixed  $notifiable
      */
     public function send($notifiable, Notification $notification): void
     {
@@ -112,8 +111,7 @@ final class RecadoChannel
      * not honored through the channel — return a RecadoMessage for full control,
      * or a payload array to pass /send fields (including `attachments`) as-is.
      *
-     * @param mixed $message
-     *
+     * @param  mixed  $message
      * @return array{0: array<string, mixed>, 1: ?string, 2: ?string}
      */
     private function resolveMessage($message): array
@@ -157,8 +155,8 @@ final class RecadoChannel
      * Resolve the recipient by precedence: explicit, then the recado route, then
      * the mail route, then a public $email property on the notifiable.
      *
-     * @param mixed $notifiable
-     * @param mixed $explicitTo
+     * @param  mixed  $notifiable
+     * @param  mixed  $explicitTo
      */
     private function resolveRecipient($notifiable, Notification $notification, $explicitTo): ?string
     {
@@ -188,8 +186,6 @@ final class RecadoChannel
     /**
      * Reduce a notification route value (string, address=>name map, or list) to
      * a single email address.
-     *
-     * @param mixed $route
      */
     private function firstEmail(mixed $route): ?string
     {

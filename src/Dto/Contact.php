@@ -11,9 +11,9 @@ namespace Recado\Sdk\Dto;
 final readonly class Contact
 {
     /**
-     * @param array<string, mixed>      $attributes
-     * @param array<int, Tag>           $tags
-     * @param array<int, ContactList>   $lists
+     * @param  array<string, mixed>  $attributes
+     * @param  array<int, Tag>  $tags
+     * @param  array<int, ContactList>  $lists
      */
     public function __construct(
         public ?string $uuid,
@@ -29,11 +29,10 @@ final readonly class Contact
         public ?string $unsubscribedAt,
         public ?string $createdAt,
         public ?string $updatedAt,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {

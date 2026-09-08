@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Recado\Sdk\Tests\Notifications;
 
+use Illuminate\Notifications\Notification;
+use Psr\Http\Message\RequestInterface;
 use Recado\Sdk\Exception\ValidationException;
 use Recado\Sdk\Laravel\Events\MessageSuppressed;
 use Recado\Sdk\Laravel\Mail\RecadoMessage;
 use Recado\Sdk\Laravel\Notifications\RecadoChannel;
-use Recado\Sdk\RecadoClient;
 use Recado\Sdk\Tests\Mail\Support\SpyDispatcher;
 use Recado\Sdk\Tests\Mail\Support\SpyLogger;
 use Recado\Sdk\Tests\TestCase;
-use Psr\Http\Message\RequestInterface;
 
 final class RecadoChannelTest extends TestCase
 {
@@ -23,7 +23,7 @@ final class RecadoChannelTest extends TestCase
             $this->jsonResponse(202, ['data' => ['id' => 'm', 'status' => 'queued']]),
         ], $history);
 
-        $channel = new RecadoChannel($client, [], new SpyDispatcher(), new SpyLogger());
+        $channel = new RecadoChannel($client, [], new SpyDispatcher, new SpyLogger);
 
         $notifiable = $this->notifiable();
         $notifiable->mail = 'jane@example.com';
@@ -80,8 +80,8 @@ final class RecadoChannelTest extends TestCase
             $this->jsonResponse(422, ['message' => 'Recipient is suppressed.', 'code' => 'recipient_suppressed']),
         ], $history);
 
-        $events = new SpyDispatcher();
-        $channel = new RecadoChannel($client, [], $events, new SpyLogger());
+        $events = new SpyDispatcher;
+        $channel = new RecadoChannel($client, [], $events, new SpyLogger);
 
         $notifiable = $this->notifiable();
         $notifiable->mail = 'jane@example.com';
@@ -161,7 +161,7 @@ final class RecadoChannelTest extends TestCase
         $channel->send($notifiable, $notification);
     }
 
-    public function test_routeNotificationFor_recado_takes_precedence_over_mail(): void
+    public function test_route_notification_for_recado_takes_precedence_over_mail(): void
     {
         $history = [];
         $client = $this->clientWithResponses([
@@ -210,11 +210,11 @@ final class RecadoChannelTest extends TestCase
     /**
      * A notification whose toRecado() returns the given message.
      *
-     * @param mixed $message
+     * @param  mixed  $message
      */
-    private function notification($message): \Illuminate\Notifications\Notification
+    private function notification($message): Notification
     {
-        $notification = new class extends \Illuminate\Notifications\Notification
+        $notification = new class extends Notification
         {
             public mixed $message = null;
 
@@ -232,8 +232,7 @@ final class RecadoChannelTest extends TestCase
     /**
      * Decode the JSON body of the request captured at the given history index.
      *
-     * @param array<int, array{request: RequestInterface}> $history
-     *
+     * @param  array<int, array{request: RequestInterface}>  $history
      * @return array<string, mixed>
      */
     private function body(array $history, int $index): array

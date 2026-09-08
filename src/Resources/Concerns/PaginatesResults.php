@@ -18,8 +18,7 @@ trait PaginatesResults
      *
      * @template T
      *
-     * @param callable(int): Paginated<T> $fetchPage receives the 1-based page number.
-     *
+     * @param  callable(int): Paginated<T>  $fetchPage  receives the 1-based page number.
      * @return \Generator<int, T>
      */
     private function paginate(callable $fetchPage): \Generator

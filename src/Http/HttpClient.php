@@ -7,12 +7,12 @@ namespace Recado\Sdk\Http;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\HandlerStack;
+use Psr\Http\Message\ResponseInterface;
 use Recado\Sdk\Exception\AuthenticationException;
-use Recado\Sdk\Exception\RecadoException;
 use Recado\Sdk\Exception\NotFoundException;
 use Recado\Sdk\Exception\RateLimitException;
+use Recado\Sdk\Exception\RecadoException;
 use Recado\Sdk\Exception\ValidationException;
-use Psr\Http\Message\ResponseInterface;
 
 /**
  * Thin wrapper around Guzzle that owns request building (auth + JSON headers),
@@ -23,11 +23,11 @@ final class HttpClient
     private readonly ClientInterface $client;
 
     /**
-     * @param array<string, mixed> $options Transport/resilience options applied
-     *                                       only when no client is injected:
-     *                                       `retries`, `retry_base_delay`,
-     *                                       `retry_max_delay`, `retry_on_status`,
-     *                                       `timeout`, `connect_timeout`.
+     * @param  array<string, mixed>  $options  Transport/resilience options applied
+     *                                         only when no client is injected:
+     *                                         `retries`, `retry_base_delay`,
+     *                                         `retry_max_delay`, `retry_on_status`,
+     *                                         `timeout`, `connect_timeout`.
      */
     public function __construct(
         private readonly string $baseUrl,
@@ -43,7 +43,7 @@ final class HttpClient
      * optional timeouts. Used only when no client is injected (an injected
      * client is taken as-is so callers keep full control).
      *
-     * @param array<string, mixed> $options
+     * @param  array<string, mixed>  $options
      */
     private function buildClient(array $options): ClientInterface
     {
@@ -64,8 +64,7 @@ final class HttpClient
     }
 
     /**
-     * @param array<string, mixed> $options
-     *
+     * @param  array<string, mixed>  $options
      * @return array<string, mixed>
      */
     public function get(string $path, array $options = []): array
@@ -74,8 +73,7 @@ final class HttpClient
     }
 
     /**
-     * @param array<string, mixed> $options
-     *
+     * @param  array<string, mixed>  $options
      * @return array<string, mixed>
      */
     public function post(string $path, array $options = []): array
@@ -84,8 +82,7 @@ final class HttpClient
     }
 
     /**
-     * @param array<string, mixed> $options
-     *
+     * @param  array<string, mixed>  $options
      * @return array<string, mixed>
      */
     public function patch(string $path, array $options = []): array
@@ -94,8 +91,7 @@ final class HttpClient
     }
 
     /**
-     * @param array<string, mixed> $options
-     *
+     * @param  array<string, mixed>  $options
      * @return array<string, mixed>
      */
     public function put(string $path, array $options = []): array
@@ -104,8 +100,7 @@ final class HttpClient
     }
 
     /**
-     * @param array<string, mixed> $options
-     *
+     * @param  array<string, mixed>  $options
      * @return array<string, mixed>
      */
     public function delete(string $path, array $options = []): array
@@ -122,8 +117,7 @@ final class HttpClient
      *  - `idempotency_key`: value for the `Idempotency-Key` header.
      *  - `headers`:         additional headers, merged over the defaults.
      *
-     * @param array<string, mixed> $options
-     *
+     * @param  array<string, mixed>  $options
      * @return array<string, mixed>
      */
     private function request(string $method, string $path, array $options): array
@@ -187,7 +181,7 @@ final class HttpClient
     }
 
     /**
-     * @param array<string, mixed> $body
+     * @param  array<string, mixed>  $body
      */
     private function mapException(int $status, array $body, ResponseInterface $response): RecadoException
     {
@@ -218,8 +212,6 @@ final class HttpClient
     }
 
     /**
-     * @param mixed $errors
-     *
      * @return array<string, array<int, string>>
      */
     private function normalizeErrors(mixed $errors): array

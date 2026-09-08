@@ -133,8 +133,7 @@ final class CampaignsTest extends TestCase
     }
 
     /**
-     * @param array<int, array<string, mixed>> $campaigns
-     *
+     * @param  array<int, array<string, mixed>>  $campaigns
      * @return array<string, mixed>
      */
     private function campaignsPage(array $campaigns, int $currentPage, int $lastPage): array

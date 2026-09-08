@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Recado\Sdk\Laravel\Mail;
 
+use Recado\Sdk\Laravel\Notifications\RecadoChannel;
+
 /**
  * Fluent builder for a transactional send from a notification's `toRecado()`
- * method (see {@see \Recado\Sdk\Laravel\Notifications\RecadoChannel}). Supports
+ * method (see {@see RecadoChannel}). Supports
  * inline subject/body/text sends and stored-template sends, an optional explicit
  * idempotency key and an optional explicit recipient that overrides the
  * notifiable's routing.
@@ -57,7 +59,7 @@ final class RecadoMessage
     }
 
     /**
-     * @param array<string, mixed> $vars
+     * @param  array<string, mixed>  $vars
      */
     public function variables(array $vars): static
     {
@@ -85,7 +87,7 @@ final class RecadoMessage
      * Laravel application (no view factory bound), leaving the body untouched so
      * the class stays usable without illuminate/view.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function view(string $view, array $data = []): static
     {

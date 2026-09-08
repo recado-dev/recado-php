@@ -9,10 +9,10 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
+use Psr\Http\Message\RequestInterface;
 use Recado\Sdk\Laravel\Facades\Recado;
 use Recado\Sdk\RecadoClient;
 use Recado\Sdk\Resources\ContactsResource;
-use Psr\Http\Message\RequestInterface;
 
 /**
  * Proves the Recado facade resolves the container-bound RecadoClient singleton
@@ -73,8 +73,8 @@ final class FacadeTest extends TestCase
      * HTTP handler, so the facade-resolved client uses it. The facade caches its
      * resolved root, so callers must clear it after rebinding.
      *
-     * @param array<int, Response> $responses
-     * @param array<int, array{request: RequestInterface}> $history
+     * @param  array<int, Response>  $responses
+     * @param  array<int, array{request: RequestInterface}>  $history
      */
     private function bindMockClient(array $responses, array &$history): void
     {

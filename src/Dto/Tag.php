@@ -14,11 +14,10 @@ final readonly class Tag
         public ?string $name,
         public ?string $color,
         public ?int $contactsCount,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {

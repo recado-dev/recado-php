@@ -17,15 +17,12 @@ final readonly class ContactsResource
 {
     use PaginatesResults;
 
-    public function __construct(private HttpClient $http)
-    {
-    }
+    public function __construct(private HttpClient $http) {}
 
     /**
      * Subscribe a contact (POST /contacts/subscribe).
      *
-     * @param array<string, mixed> $payload
-     *
+     * @param  array<string, mixed>  $payload
      * @return array<string, mixed> The `data` block: id, email, status.
      */
     public function subscribe(array $payload): array
@@ -38,9 +35,8 @@ final readonly class ContactsResource
     /**
      * List contacts (GET /contacts).
      *
-     * @param array<string, mixed> $query search, status, tag_id, list_id,
-     *                                    per_page, page.
-     *
+     * @param  array<string, mixed>  $query  search, status, tag_id, list_id,
+     *                                       per_page, page.
      * @return Paginated<Contact>
      */
     public function list(array $query = []): Paginated
@@ -53,9 +49,8 @@ final readonly class ContactsResource
     /**
      * Lazily iterate every contact across all pages (GET /contacts).
      *
-     * @param array<string, mixed> $query search, status, tag_id, list_id,
-     *                                    per_page (page is managed automatically).
-     *
+     * @param  array<string, mixed>  $query  search, status, tag_id, list_id,
+     *                                       per_page (page is managed automatically).
      * @return \Generator<int, Contact>
      */
     public function cursor(array $query = []): \Generator
@@ -78,8 +73,8 @@ final readonly class ContactsResource
     /**
      * Update a contact (PATCH /contacts/{email}).
      *
-     * @param array<string, mixed> $payload Any of first_name, last_name,
-     *                                      locale, attributes, status.
+     * @param  array<string, mixed>  $payload  Any of first_name, last_name,
+     *                                         locale, attributes, status.
      */
     public function update(string $email, array $payload): Contact
     {
@@ -99,9 +94,8 @@ final readonly class ContactsResource
     /**
      * Add and/or remove tags on a contact (POST /contacts/{email}/tags).
      *
-     * @param array<int, string> $add
-     * @param array<int, string> $remove
-     *
+     * @param  array<int, string>  $add
+     * @param  array<int, string>  $remove
      * @return array<string, mixed> The `data` block: email, tags (sorted names).
      */
     public function tags(string $email, array $add = [], array $remove = []): array

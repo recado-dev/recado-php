@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Recado\Sdk\Tests\Laravel;
 
-use Recado\Sdk\Laravel\RecadoServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
+use Recado\Sdk\Laravel\RecadoServiceProvider;
 
 /**
  * Base test case that boots a minimal Laravel application (via Testbench) with

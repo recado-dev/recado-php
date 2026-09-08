@@ -9,8 +9,9 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
-use Recado\Sdk\RecadoClient;
 use PHPUnit\Framework\TestCase as BaseTestCase;
+use Psr\Http\Message\RequestInterface;
+use Recado\Sdk\RecadoClient;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -28,8 +29,8 @@ abstract class TestCase extends BaseTestCase
      * Build a RecadoClient whose transport replays the given queued responses,
      * and capture every outgoing request into the returned `$history` array.
      *
-     * @param array<int, Response> $responses
-     * @param array<int, array{request: \Psr\Http\Message\RequestInterface, ...}> $history
+     * @param  array<int, Response>  $responses
+     * @param  array<int, array{request: RequestInterface, ...}>  $history
      */
     protected function clientWithResponses(array $responses, array &$history): RecadoClient
     {
@@ -45,8 +46,8 @@ abstract class TestCase extends BaseTestCase
     /**
      * Convenience helper to build a JSON Guzzle response.
      *
-     * @param array<string, mixed> $body
-     * @param array<string, string> $headers
+     * @param  array<string, mixed>  $body
+     * @param  array<string, string>  $headers
      */
     protected function jsonResponse(int $status, array $body, array $headers = []): Response
     {

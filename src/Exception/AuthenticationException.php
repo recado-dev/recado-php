@@ -7,6 +7,4 @@ namespace Recado\Sdk\Exception;
 /**
  * Thrown on HTTP 401 responses (missing/invalid/expired API token).
  */
-class AuthenticationException extends RecadoException
-{
-}
+class AuthenticationException extends RecadoException {}

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Recado\Sdk\Tests\Mail;
 
+use Psr\Http\Message\RequestInterface;
 use Recado\Sdk\Exception\UnsupportedFeatureException;
 use Recado\Sdk\Exception\ValidationException;
 use Recado\Sdk\Laravel\Events\MessageSuppressed;
@@ -13,7 +14,6 @@ use Recado\Sdk\RecadoClient;
 use Recado\Sdk\Tests\Mail\Support\SpyDispatcher;
 use Recado\Sdk\Tests\Mail\Support\SpyLogger;
 use Recado\Sdk\Tests\TestCase;
-use Psr\Http\Message\RequestInterface;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Mime\Email;
 
@@ -108,7 +108,7 @@ final class RecadoTransportTest extends TestCase
             $this->jsonResponse(202, ['data' => ['id' => 'msg-1', 'status' => 'queued']]),
         ], $history);
 
-        $logger = new SpyLogger();
+        $logger = new SpyLogger;
         $transport = $this->transport($client, ['attachments' => 'ignore'], null, $logger);
 
         $email = $this->email()->to('jane@example.com')->subject('S')->html('<p>x</p>')
@@ -127,7 +127,7 @@ final class RecadoTransportTest extends TestCase
             $this->jsonResponse(422, ['message' => 'Recipient is suppressed.', 'code' => 'recipient_suppressed']),
         ], $history);
 
-        $events = new SpyDispatcher();
+        $events = new SpyDispatcher;
         $transport = $this->transport($client, [], $events);
 
         $email = $this->email()->to('jane@example.com')->subject('S')->html('<p>x</p>');
@@ -154,7 +154,7 @@ final class RecadoTransportTest extends TestCase
             ]]),
         ], $history);
 
-        $events = new SpyDispatcher();
+        $events = new SpyDispatcher;
         $transport = $this->transport($client, [], $events);
 
         $email = $this->email()
@@ -381,7 +381,7 @@ final class RecadoTransportTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $mailConfig
+     * @param  array<string, mixed>  $mailConfig
      */
     private function transport(
         RecadoClient $client,
@@ -395,8 +395,7 @@ final class RecadoTransportTest extends TestCase
     /**
      * Decode the JSON body of the request captured at the given history index.
      *
-     * @param array<int, array{request: RequestInterface}> $history
-     *
+     * @param  array<int, array{request: RequestInterface}>  $history
      * @return array<string, mixed>
      */
     private function body(array $history, int $index): array

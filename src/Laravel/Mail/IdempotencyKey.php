@@ -20,15 +20,15 @@ use Illuminate\Support\Str;
 final class IdempotencyKey
 {
     /**
-     * @param array<string, mixed> $payload    The /send content payload. Its `to`
-     *                                          value scopes the key: a scalar
-     *                                          recipient yields a per-recipient
-     *                                          key (single send / channel path); a
-     *                                          sorted recipient list yields one key
-     *                                          shared across a batch. Content
-     *                                          without any `to` would collide
-     *                                          across recipients — always pass it.
-     * @param array<string, mixed> $mailConfig The `recado-sdk.mail` config block.
+     * @param  array<string, mixed>  $payload  The /send content payload. Its `to`
+     *                                         value scopes the key: a scalar
+     *                                         recipient yields a per-recipient
+     *                                         key (single send / channel path); a
+     *                                         sorted recipient list yields one key
+     *                                         shared across a batch. Content
+     *                                         without any `to` would collide
+     *                                         across recipients — always pass it.
+     * @param  array<string, mixed>  $mailConfig  The `recado-sdk.mail` config block.
      */
     public static function compute(array $payload, array $mailConfig, ?string $override = null): ?string
     {
@@ -49,7 +49,7 @@ final class IdempotencyKey
      * Deterministic key derived from the canonical content, so a queue retry of
      * the same job never duplicates the send.
      *
-     * @param array<string, mixed> $payload
+     * @param  array<string, mixed>  $payload
      */
     private static function contentKey(array $payload): string
     {
@@ -81,7 +81,5 @@ final class IdempotencyKey
         return 'txn_'.substr($hash, 0, 60);
     }
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 }

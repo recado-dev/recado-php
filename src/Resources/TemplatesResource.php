@@ -17,15 +17,12 @@ final readonly class TemplatesResource
 {
     use PaginatesResults;
 
-    public function __construct(private HttpClient $http)
-    {
-    }
+    public function __construct(private HttpClient $http) {}
 
     /**
      * List templates (GET /templates) — compact form.
      *
-     * @param array<string, mixed> $query
-     *
+     * @param  array<string, mixed>  $query
      * @return Paginated<Template>
      */
     public function list(array $query = []): Paginated
@@ -38,8 +35,7 @@ final readonly class TemplatesResource
     /**
      * Lazily iterate every template across all pages (GET /templates).
      *
-     * @param array<string, mixed> $query per_page (page is managed automatically).
-     *
+     * @param  array<string, mixed>  $query  per_page (page is managed automatically).
      * @return \Generator<int, Template>
      */
     public function cursor(array $query = []): \Generator
@@ -52,8 +48,8 @@ final readonly class TemplatesResource
     /**
      * Create a template (POST /templates).
      *
-     * @param array<string, mixed> $payload name, slug, subject, body_html,
-     *                                      optional body_text.
+     * @param  array<string, mixed>  $payload  name, slug, subject, body_html,
+     *                                         optional body_text.
      */
     public function create(array $payload): Template
     {
@@ -75,8 +71,8 @@ final readonly class TemplatesResource
     /**
      * Partially update a template (PATCH /templates/{slug}).
      *
-     * @param array<string, mixed> $payload Any of name, slug, subject,
-     *                                      body_html, body_text.
+     * @param  array<string, mixed>  $payload  Any of name, slug, subject,
+     *                                         body_html, body_text.
      */
     public function update(string $slug, array $payload): Template
     {
@@ -97,7 +93,7 @@ final readonly class TemplatesResource
      * Create or update a per-locale variant
      * (PUT /templates/{slug}/variants/{locale}).
      *
-     * @param array<string, mixed> $payload subject, body_html, optional body_text.
+     * @param  array<string, mixed>  $payload  subject, body_html, optional body_text.
      */
     public function putVariant(string $slug, string $locale, array $payload): TemplateVariant
     {

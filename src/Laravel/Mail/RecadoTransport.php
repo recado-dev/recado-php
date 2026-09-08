@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Recado\Sdk\Laravel\Mail;
 
 use Illuminate\Contracts\Events\Dispatcher;
+use Psr\Log\LoggerInterface;
 use Recado\Sdk\Dto\BatchResult;
 use Recado\Sdk\Exception\RecadoException;
 use Recado\Sdk\Exception\ValidationException;
 use Recado\Sdk\Laravel\Events\MessageSuppressed;
 use Recado\Sdk\RecadoClient;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\Exception\TransportException;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\AbstractTransport;
@@ -60,10 +60,10 @@ final class RecadoTransport extends AbstractTransport
     private readonly ?LoggerInterface $transportLogger;
 
     /**
-     * @param array<string, mixed> $config The `recado-sdk.mail` config block:
-     *                                      `attachments` ('send'|'fail'|'ignore'),
-     *                                      `idempotency` ('content'|'random'|'off')
-     *                                      and `forward_from` (bool).
+     * @param  array<string, mixed>  $config  The `recado-sdk.mail` config block:
+     *                                        `attachments` ('send'|'fail'|'ignore'),
+     *                                        `idempotency` ('content'|'random'|'off')
+     *                                        and `forward_from` (bool).
      */
     public function __construct(
         private readonly RecadoClient $client,
@@ -145,7 +145,7 @@ final class RecadoTransport extends AbstractTransport
     }
 
     /**
-     * @param array<string, mixed> $base
+     * @param  array<string, mixed>  $base
      */
     private function sendSingle(string $recipient, array $base, ?string $override): void
     {
@@ -200,8 +200,8 @@ final class RecadoTransport extends AbstractTransport
      * recipient (`{override}:{sha1(recipient) prefix}`) — reusing it verbatim
      * would make the platform silently dedupe every recipient after the first.
      *
-     * @param array<int, string> $recipients
-     * @param array<string, mixed> $base
+     * @param  array<int, string>  $recipients
+     * @param  array<string, mixed>  $base
      */
     private function sendEachSingle(array $recipients, array $base, ?string $override): void
     {
@@ -215,8 +215,8 @@ final class RecadoTransport extends AbstractTransport
     }
 
     /**
-     * @param array<int, string> $recipients
-     * @param array<string, mixed> $base
+     * @param  array<int, string>  $recipients
+     * @param  array<string, mixed>  $base
      */
     private function sendBatch(array $recipients, array $base, ?string $override): void
     {
@@ -259,7 +259,7 @@ final class RecadoTransport extends AbstractTransport
      * each suppressed recipient (not a failure) and raise a TransportException
      * if any recipient hard-failed (quota_exceeded, template_not_found, ...).
      *
-     * @param array<int, string> $recipients
+     * @param  array<int, string>  $recipients
      */
     private function handleBatchResult(BatchResult $result, array $recipients, mixed $from = null): void
     {
@@ -329,7 +329,7 @@ final class RecadoTransport extends AbstractTransport
     }
 
     /**
-     * @param array<int, string> $recipients
+     * @param  array<int, string>  $recipients
      */
     private function recipientForIndex(?int $index, array $recipients): ?string
     {
@@ -341,7 +341,7 @@ final class RecadoTransport extends AbstractTransport
     }
 
     /**
-     * @param array<string, mixed>|null $body
+     * @param  array<string, mixed>|null  $body
      */
     private function dispatchSuppressed(string $recipient, ?string $reason, ?array $body = null): void
     {

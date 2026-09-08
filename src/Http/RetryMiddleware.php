@@ -37,7 +37,7 @@ final class RetryMiddleware
      *  - `retry_max_delay`  (int ms, 5000): backoff cap (also caps a 429 Retry-After).
      *  - `retry_on_status`  (int[], 500..599): statuses to retry (429 is always retried).
      *
-     * @param array<string, mixed> $config
+     * @param  array<string, mixed>  $config
      */
     public static function make(array $config = []): callable
     {

@@ -27,8 +27,7 @@ final class LazyPaginator
      *
      * @template T
      *
-     * @param callable(int): Paginated<T> $fetchPage receives the 1-based page number.
-     *
+     * @param  callable(int): Paginated<T>  $fetchPage  receives the 1-based page number.
      * @return \Generator<int, T>
      */
     public static function generate(callable $fetchPage): \Generator
@@ -53,7 +52,7 @@ final class LazyPaginator
     /**
      * Decide whether another page should be fetched after the given one.
      *
-     * @param Paginated<mixed> $result
+     * @param  Paginated<mixed>  $result
      */
     private static function hasMorePages(Paginated $result, int $page): bool
     {

@@ -24,7 +24,7 @@ use Recado\Sdk\RecadoClient;
  * @method static \Recado\Sdk\Resources\PushTokensResource push()
  * @method static \Recado\Sdk\Resources\SandboxResource sandbox()
  *
- * @see \Recado\Sdk\RecadoClient
+ * @see RecadoClient
  */
 final class Recado extends Facade
 {

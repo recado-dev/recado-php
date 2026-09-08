@@ -32,7 +32,5 @@ final class RecadoHeaders
      */
     public const IDEMPOTENCY_KEY = 'X-Recado-Idempotency-Key';
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 }

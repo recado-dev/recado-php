@@ -918,10 +918,16 @@ Recado::send()->email([
 
 ```bash
 composer install
+composer lint        # Pint (fix)   — alias for: vendor/bin/pint
+composer lint:check  # Pint (check) — alias for: vendor/bin/pint --test
 composer test        # alias for: vendor/bin/phpunit
 ```
 
 Tests run entirely against a Guzzle `MockHandler` — no network access required.
+
+Both commands run in CI (`.github/workflows/sdk.yml` in the source monorepo) on
+PHP 8.4 and 8.5 for every push and pull request, so a change that breaks the
+suite or the code style cannot land.
 
 For how this package is split out of the monorepo into its own repository,
 tagged with SemVer and published to Packagist, see

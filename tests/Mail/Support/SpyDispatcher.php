@@ -26,18 +26,14 @@ final class SpyDispatcher implements Dispatcher
         ));
     }
 
-    public function listen($events, $listener = null): void
-    {
-    }
+    public function listen($events, $listener = null): void {}
 
     public function hasListeners($eventName): bool
     {
         return false;
     }
 
-    public function subscribe($subscriber): void
-    {
-    }
+    public function subscribe($subscriber): void {}
 
     public function until($event, $payload = [])
     {
@@ -51,19 +47,11 @@ final class SpyDispatcher implements Dispatcher
         return null;
     }
 
-    public function push($event, $payload = []): void
-    {
-    }
+    public function push($event, $payload = []): void {}
 
-    public function flush($event): void
-    {
-    }
+    public function flush($event): void {}
 
-    public function forget($event): void
-    {
-    }
+    public function forget($event): void {}
 
-    public function forgetPushed(): void
-    {
-    }
+    public function forgetPushed(): void {}
 }

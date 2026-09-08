@@ -6,6 +6,7 @@ namespace Recado\Sdk\Resources;
 
 use Recado\Sdk\Dto\NotificationBatchResult;
 use Recado\Sdk\Dto\NotificationResult;
+use Recado\Sdk\Exception\RecadoException;
 use Recado\Sdk\Exception\ValidationException;
 use Recado\Sdk\Http\HttpClient;
 
@@ -15,9 +16,7 @@ use Recado\Sdk\Http\HttpClient;
  */
 final readonly class NotificationsResource
 {
-    public function __construct(private HttpClient $http)
-    {
-    }
+    public function __construct(private HttpClient $http) {}
 
     /**
      * Send a notification to a contact (POST /notifications).
@@ -39,10 +38,10 @@ final readonly class NotificationsResource
      * `action_url`/`icon` override the template defaults. An unknown slug
      * throws a {@see ValidationException} with code `template_not_found`.
      *
-     * @param array<string, mixed> $payload `to`, then `title` + `body` or a
-     *                                       `template` slug, plus optional
-     *                                       `channels` (defaults to `['in_app']`),
-     *                                       `action_url`, `icon`, `variables`.
+     * @param  array<string, mixed>  $payload  `to`, then `title` + `body` or a
+     *                                         `template` slug, plus optional
+     *                                         `channels` (defaults to `['in_app']`),
+     *                                         `action_url`, `icon`, `variables`.
      */
     public function send(array $payload): NotificationResult
     {
@@ -84,10 +83,10 @@ final readonly class NotificationsResource
      * hours instead of queueing a second batch (its own key namespace: a
      * `/send/batch` key with the same string is unrelated). A retry arriving
      * while the first request is still in flight throws a
-     * {@see \Recado\Sdk\Exception\RecadoException} carrying status `409` and
+     * {@see RecadoException} carrying status `409` and
      * code `idempotency_conflict` — retry shortly after.
      *
-     * @param array<int, array<string, mixed>> $messages 1-100 notification payloads.
+     * @param  array<int, array<string, mixed>>  $messages  1-100 notification payloads.
      */
     public function batch(array $messages, ?string $idempotencyKey = null): NotificationBatchResult
     {

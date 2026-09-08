@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Recado\Sdk\Tests\Mail;
 
+use Psr\Http\Message\RequestInterface;
 use Recado\Sdk\Exception\AttachmentsTooLargeException;
 use Recado\Sdk\Exception\UnsupportedFeatureException;
+use Recado\Sdk\Laravel\Mail\PayloadMapper;
 use Recado\Sdk\Laravel\Mail\RecadoHeaders;
 use Recado\Sdk\Laravel\Mail\RecadoTransport;
-use Recado\Sdk\Laravel\Mail\PayloadMapper;
 use Recado\Sdk\RecadoClient;
 use Recado\Sdk\Tests\Mail\Support\SpyLogger;
 use Recado\Sdk\Tests\TestCase;
-use Psr\Http\Message\RequestInterface;
 use Symfony\Component\Mime\Email;
 
 /**
@@ -92,7 +92,7 @@ final class AttachmentsTest extends TestCase
 
     public function test_ignore_mode_still_drops_attachments_with_a_warning(): void
     {
-        $logger = new SpyLogger();
+        $logger = new SpyLogger;
 
         $email = $this->email()->subject('S')->html('<p>x</p>')
             ->attach('binary', 'file.txt', 'text/plain');
@@ -242,7 +242,7 @@ final class AttachmentsTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $mailConfig
+     * @param  array<string, mixed>  $mailConfig
      */
     private function transport(RecadoClient $client, array $mailConfig = []): RecadoTransport
     {
@@ -252,8 +252,7 @@ final class AttachmentsTest extends TestCase
     /**
      * Decode the JSON body of the request captured at the given history index.
      *
-     * @param array<int, array{request: RequestInterface}> $history
-     *
+     * @param  array<int, array{request: RequestInterface}>  $history
      * @return array<string, mixed>
      */
     private function body(array $history, int $index): array

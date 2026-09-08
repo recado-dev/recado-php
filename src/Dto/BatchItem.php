@@ -15,11 +15,10 @@ final readonly class BatchItem
         public ?string $id,
         public ?string $code,
         public ?string $error,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {

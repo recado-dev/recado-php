@@ -12,11 +12,10 @@ final readonly class SentMessage
     public function __construct(
         public ?string $id,
         public ?string $status,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {

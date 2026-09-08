@@ -11,10 +11,10 @@ namespace Recado\Sdk\Dto;
 final readonly class Message
 {
     /**
-     * @param array<int, MessageEvent>  $events
-     * @param array<int, string>|null   $cc
-     * @param array<int, string>|null   $bcc
-     * @param array<string, mixed>|null $metadata
+     * @param  array<int, MessageEvent>  $events
+     * @param  array<int, string>|null  $cc
+     * @param  array<int, string>|null  $bcc
+     * @param  array<string, mixed>|null  $metadata
      */
     public function __construct(
         public ?string $uuid,
@@ -33,11 +33,10 @@ final readonly class Message
         public ?array $bcc = null,
         public ?string $replyTo = null,
         public ?array $metadata = null,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {

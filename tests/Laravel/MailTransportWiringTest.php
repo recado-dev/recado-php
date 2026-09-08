@@ -10,8 +10,8 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
 use Illuminate\Support\Facades\Mail;
-use Recado\Sdk\RecadoClient;
 use Psr\Http\Message\RequestInterface;
+use Recado\Sdk\RecadoClient;
 
 /**
  * End-to-end proof that MAIL_MAILER=recado routes Laravel's Mail facade through
@@ -79,8 +79,8 @@ final class MailTransportWiringTest extends TestCase
      * Re-bind the container's RecadoClient singleton with one backed by a mock
      * HTTP handler, so the real transport (built by Mail::extend) uses it.
      *
-     * @param array<int, Response> $responses
-     * @param array<int, array{request: RequestInterface}> $history
+     * @param  array<int, Response>  $responses
+     * @param  array<int, array{request: RequestInterface}>  $history
      */
     private function bindMockClient(array $responses, array &$history): void
     {

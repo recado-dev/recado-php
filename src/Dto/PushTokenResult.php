@@ -16,11 +16,10 @@ final readonly class PushTokenResult
         public ?bool $registered,
         public ?int $devices,
         public ?bool $removed,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {

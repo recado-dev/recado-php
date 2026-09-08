@@ -9,10 +9,11 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response;
+use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Notification;
+use Psr\Http\Message\RequestInterface;
 use Recado\Sdk\Laravel\Mail\RecadoMessage;
 use Recado\Sdk\RecadoClient;
-use Psr\Http\Message\RequestInterface;
 
 /**
  * End-to-end proof that a Notification with via() => ['recado'] routes through
@@ -32,7 +33,7 @@ final class NotificationChannelWiringTest extends TestCase
 
         $notifiable = new class
         {
-            use \Illuminate\Notifications\Notifiable;
+            use Notifiable;
 
             public string $email = 'jane@example.com';
         };
@@ -65,8 +66,8 @@ final class NotificationChannelWiringTest extends TestCase
      * Re-bind the container's RecadoClient singleton with one backed by a mock
      * HTTP handler, so the real channel (built by ChannelManager::extend) uses it.
      *
-     * @param array<int, Response> $responses
-     * @param array<int, array{request: RequestInterface}> $history
+     * @param  array<int, Response>  $responses
+     * @param  array<int, array{request: RequestInterface}>  $history
      */
     private function bindMockClient(array $responses, array &$history): void
     {

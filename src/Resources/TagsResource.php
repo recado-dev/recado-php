@@ -12,9 +12,7 @@ use Recado\Sdk\Http\HttpClient;
  */
 final readonly class TagsResource
 {
-    public function __construct(private HttpClient $http)
-    {
-    }
+    public function __construct(private HttpClient $http) {}
 
     /**
      * List all tags (GET /tags). This endpoint is a flat array, not paginated.

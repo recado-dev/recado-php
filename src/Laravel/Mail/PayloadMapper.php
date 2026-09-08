@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Recado\Sdk\Laravel\Mail;
 
+use Psr\Log\LoggerInterface;
 use Recado\Sdk\Exception\AttachmentsTooLargeException;
 use Recado\Sdk\Exception\UnsupportedFeatureException;
-use Psr\Log\LoggerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\MimeTypes;
 use Symfony\Component\Mime\Part\DataPart;
@@ -45,8 +45,7 @@ final class PayloadMapper
      * plus the `from`/`from_name`/`reply_to` sender override when the message
      * carries one.
      *
-     * @param array<string, mixed> $mailConfig
-     *
+     * @param  array<string, mixed>  $mailConfig
      * @return array<string, mixed>
      */
     public static function base(Email $email, array $mailConfig, ?LoggerInterface $logger = null): array
@@ -94,8 +93,7 @@ final class PayloadMapper
      * Build the full /send payload for a single recipient: `to` first, then the
      * shared content payload.
      *
-     * @param array<string, mixed> $mailConfig
-     *
+     * @param  array<string, mixed>  $mailConfig
      * @return array<string, mixed>
      */
     public static function fromEmail(Email $email, string $recipient, array $mailConfig, ?LoggerInterface $logger = null): array
@@ -115,8 +113,7 @@ final class PayloadMapper
      *   - 'fail': throw an {@see UnsupportedFeatureException} (legacy fail-loud
      *     behavior for consumers who never want attachments to leave the app).
      *
-     * @param array<string, mixed> $mailConfig
-     *
+     * @param  array<string, mixed>  $mailConfig
      * @return array<int, array{filename: string, content_type: string, content: string}>
      */
     private static function attachments(Email $email, array $mailConfig, ?LoggerInterface $logger): array
@@ -188,9 +185,8 @@ final class PayloadMapper
     }
 
     /**
-     * @param array<string, mixed> $payload
-     * @param array<int, array{filename: string, content_type: string, content: string}> $attachments
-     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<int, array{filename: string, content_type: string, content: string}>  $attachments
      * @return array<string, mixed>
      */
     private static function withAttachments(array $payload, array $attachments): array
@@ -217,8 +213,7 @@ final class PayloadMapper
      * project's verified sending domains and answers `422
      * sending_domain_not_verified` when it does not belong to one.
      *
-     * @param array<string, mixed> $mailConfig
-     *
+     * @param  array<string, mixed>  $mailConfig
      * @return array<string, mixed>
      */
     private static function sender(Email $email, array $mailConfig, ?LoggerInterface $logger): array
@@ -318,7 +313,5 @@ final class PayloadMapper
         return (string) $body;
     }
 
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 }

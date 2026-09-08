@@ -13,25 +13,23 @@ namespace Recado\Sdk\Dto;
 final readonly class Paginated
 {
     /**
-     * @param array<int, T>        $data
-     * @param array<string, mixed> $meta
-     * @param array<string, mixed> $links
+     * @param  array<int, T>  $data
+     * @param  array<string, mixed>  $meta
+     * @param  array<string, mixed>  $links
      */
     public function __construct(
         public array $data,
         public array $meta,
         public array $links,
-    ) {
-    }
+    ) {}
 
     /**
      * Map a paginated payload's `data[]` through `$mapItem`, keeping meta/links.
      *
      * @template U
      *
-     * @param array<string, mixed>      $payload
-     * @param callable(array<string, mixed>): U $mapItem
-     *
+     * @param  array<string, mixed>  $payload
+     * @param  callable(array<string, mixed>): U  $mapItem
      * @return self<U>
      */
     public static function fromArray(array $payload, callable $mapItem): self

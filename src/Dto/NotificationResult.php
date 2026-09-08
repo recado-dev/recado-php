@@ -15,15 +15,14 @@ namespace Recado\Sdk\Dto;
 final readonly class NotificationResult
 {
     /**
-     * @param array<int, NotificationChannelResult> $messages
+     * @param  array<int, NotificationChannelResult>  $messages
      */
     public function __construct(
         public array $messages,
-    ) {
-    }
+    ) {}
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public static function fromArray(array $data): self
     {
