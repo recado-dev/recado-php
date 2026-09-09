@@ -204,6 +204,28 @@ final class SendTest extends TestCase
         $this->assertSame('es-MX', $body['locale']);
     }
 
+    public function test_track_forwards_lists_and_tags_at_the_top_level(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(202, [
+                'data' => ['id' => 46, 'event' => 'signed-up', 'email' => 'ada@example.com'],
+            ]),
+        ], $history);
+
+        // The endpoint reads `lists`/`tags` next to `event`/`email`, not inside
+        // the event payload — they must land at the TOP level of the body.
+        $client->send()->track('signed-up', 'ada@example.com', ['plan' => 'pro'], [
+            'lists' => [1],
+            'tags' => ['beta'],
+        ]);
+
+        $body = json_decode((string) $history[0]['request']->getBody(), true);
+        $this->assertSame([1], $body['lists']);
+        $this->assertSame(['beta'], $body['tags']);
+        $this->assertSame(['plan' => 'pro'], $body['data']);
+    }
+
     public function test_send_and_batch_pass_the_contact_name_fields_through(): void
     {
         $history = [];

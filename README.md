@@ -396,6 +396,18 @@ $client->send()->track('signed-up', 'jane@example.com', [], [
 ]);
 $client->send()->track('signed-up', 'ada@example.com', [], ['name' => 'Ada Lovelace']);
 
+// The same array also takes `lists` (ids of your lists, max 50) and `tags`
+// (names, max 25, created on first use). The API attaches them BEFORE it
+// records the occurrence, so an event-triggered automation already sees them
+// (a `has_tag` condition can match a tag sent with this very call). Both are
+// idempotent and neither changes the contact's subscription status; an unknown
+// list id throws a `ValidationException` with the code `list_not_found`.
+$client->send()->track('signed-up', 'ada@example.com', [], [
+    'name' => 'Ada Lovelace',
+    'lists' => [1],
+    'tags' => ['beta'],
+]);
+
 // The positional arguments always win: an `email`/`event`/`data` key in the
 // contact array is ignored, never a way to redirect the call.
 

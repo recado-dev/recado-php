@@ -97,6 +97,14 @@ final readonly class SendResource
      * pass-through array (like every other payload in this SDK). Do NOT put
      * event payload data here: that is `$data`.
      *
+     * It also carries `lists` (ids of the project's lists, max 50) and `tags`
+     * (names, max 25, created on first use). The platform attaches both to the
+     * contact BEFORE it records the occurrence, so an event-triggered
+     * automation already observes them (a `has_tag` condition can match a tag
+     * sent with this very call). Both are idempotent and neither changes the
+     * contact's subscription status; an unknown list id is rejected with a
+     * `422` `ValidationException` carrying the code `list_not_found`.
+     *
      * The positional `$event`/`$email` (and the `data` block) always win: a
      * `$contact` entry with one of those keys is ignored, so the array can
      * never redirect the call to another contact or event.
@@ -104,7 +112,8 @@ final readonly class SendResource
      * @param  array<string, mixed>  $data  Optional event payload.
      * @param  array<string, mixed>  $contact  Optional contact fields:
      *                                         `first_name`, `last_name`,
-     *                                         `name`, `locale`.
+     *                                         `name`, `locale`, `lists`,
+     *                                         `tags`.
      * @return array<string, mixed> The `data` block: id, event, email.
      */
     public function track(string $event, string $email, array $data = [], array $contact = []): array

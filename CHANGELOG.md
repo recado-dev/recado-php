@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-09-09
+
 ### Added
 
 - `send()->track()` accepts an optional fourth `$contact` array carrying the
@@ -18,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   omitted. The positional `$event`/`$email` and the `data` block always win
   over a same-named key in the array, and passing only the first three
   arguments is byte-identical to before.
+- The same `$contact` array also carries `lists` (ids of the project's lists,
+  max 50) and `tags` (names, max 25, created on first use), which the endpoint
+  attaches to the upserted contact **before** the event is recorded — so an
+  event-triggered automation already observes them (e.g. a `has_tag` condition
+  on a tag sent with this very call). Both are idempotent and never change the
+  contact's subscription status; an unknown list id is rejected with a `422`
+  `ValidationException` carrying the code `list_not_found`. Documented only —
+  pass-through, no code change.
 - `send()->email()` and `send()->batch()` items accept the same `first_name` /
   `last_name` / `name` fields (documented pass-through — the payload was
   already forwarded as-is).
@@ -30,11 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Notes
 
-- The display-name forwarding and the `first_name`/`last_name`/`name` send
-  fields need the platform side of them (`/v1/send`, `/v1/send/batch`) to be
-  live: the API ignores the extra fields until then. **Do not cut 2.4.0 before
-  that lands.** The `track()` `locale` key already works against the current
-  API.
+- The API accepts the `first_name`/`last_name`/`name` fields on `/v1/send`,
+  `/v1/send/batch` and `/v1/track` since 2026-09-08, and the `/v1/track`
+  `lists`/`tags` fields since 2026-09-09. The `track()` `locale` key has worked
+  for longer.
 
 ## [2.3.0] - 2026-09-08
 
@@ -356,7 +365,8 @@ the same code and tests, renamed. Everything brand-carrying is breaking:
   (wrappable in a Laravel `LazyCollection`).
 - Read-only campaigns resource (`campaigns()->list()` / `get()` with stats).
 
-[Unreleased]: https://github.com/recado-dev/recado-php/compare/v2.3.0...main
+[Unreleased]: https://github.com/recado-dev/recado-php/compare/v2.4.0...main
+[2.4.0]: https://github.com/recado-dev/recado-php/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/recado-dev/recado-php/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/recado-dev/recado-php/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/recado-dev/recado-php/compare/v2.0.0...v2.1.0
