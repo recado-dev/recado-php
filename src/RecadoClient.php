@@ -9,14 +9,17 @@ use Recado\Sdk\Exception\RecadoConfigurationException;
 use Recado\Sdk\Http\HttpClient;
 use Recado\Sdk\Resources\CampaignsResource;
 use Recado\Sdk\Resources\ContactsResource;
+use Recado\Sdk\Resources\EventsResource;
 use Recado\Sdk\Resources\ListsResource;
 use Recado\Sdk\Resources\MessagesResource;
 use Recado\Sdk\Resources\NotificationsResource;
 use Recado\Sdk\Resources\PushTokensResource;
 use Recado\Sdk\Resources\SandboxResource;
+use Recado\Sdk\Resources\SegmentsResource;
 use Recado\Sdk\Resources\SendResource;
 use Recado\Sdk\Resources\TagsResource;
 use Recado\Sdk\Resources\TemplatesResource;
+use Recado\Sdk\Resources\WebhooksResource;
 
 /**
  * Entry point of the Recado SDK. Build it with a base URL (the ".../api/v1"
@@ -70,6 +73,12 @@ final class RecadoClient
     private ?PushTokensResource $push = null;
 
     private ?SandboxResource $sandbox = null;
+
+    private ?SegmentsResource $segments = null;
+
+    private ?WebhooksResource $webhooks = null;
+
+    private ?EventsResource $events = null;
 
     /**
      * @param  array<string, mixed>  $options  Transport/resilience options applied
@@ -178,5 +187,20 @@ final class RecadoClient
     public function sandbox(): SandboxResource
     {
         return $this->sandbox ??= new SandboxResource($this->http);
+    }
+
+    public function segments(): SegmentsResource
+    {
+        return $this->segments ??= new SegmentsResource($this->http);
+    }
+
+    public function webhooks(): WebhooksResource
+    {
+        return $this->webhooks ??= new WebhooksResource($this->http);
+    }
+
+    public function events(): EventsResource
+    {
+        return $this->events ??= new EventsResource($this->http);
     }
 }

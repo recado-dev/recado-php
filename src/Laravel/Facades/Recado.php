@@ -23,6 +23,9 @@ use Recado\Sdk\RecadoClient;
  * @method static \Recado\Sdk\Resources\NotificationsResource notifications()
  * @method static \Recado\Sdk\Resources\PushTokensResource push()
  * @method static \Recado\Sdk\Resources\SandboxResource sandbox()
+ * @method static \Recado\Sdk\Resources\SegmentsResource segments()
+ * @method static \Recado\Sdk\Resources\WebhooksResource webhooks()
+ * @method static \Recado\Sdk\Resources\EventsResource events()
  *
  * @see RecadoClient
  */
