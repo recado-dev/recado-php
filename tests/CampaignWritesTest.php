@@ -321,6 +321,18 @@ final class CampaignWritesTest extends TestCase
         );
     }
 
+    public function test_preview_without_options_posts_no_body(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(200, ['data' => ['subject' => 'Hi', 'html' => '<p>hi</p>']]),
+        ], $history);
+
+        $client->campaigns()->preview(42);
+
+        $this->assertSame('', (string) $history[0]['request']->getBody());
+    }
+
     public function test_readiness_parses_the_checklist(): void
     {
         $history = [];

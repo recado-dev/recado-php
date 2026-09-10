@@ -309,7 +309,12 @@ final readonly class CampaignsResource
             $payload['variant'] = $variant;
         }
 
-        $response = $this->http->post('campaigns/'.$id.'/preview', ['json' => $payload]);
+        // No body at all rather than an empty JSON array when nothing was given:
+        // both fields are optional, so a bare preview is a bodyless POST.
+        $response = $this->http->post(
+            'campaigns/'.$id.'/preview',
+            $payload === [] ? [] : ['json' => $payload],
+        );
 
         return CampaignPreview::fromArray($response['data'] ?? []);
     }
