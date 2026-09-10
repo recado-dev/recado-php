@@ -8,6 +8,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-09-10
+
+### Added
+
+- `CampaignsResource` gained the whole write surface: `create()`, `update()`,
+  `delete()`, `duplicate()`, `send()`, `schedule()`, `unschedule()`,
+  `cancel()`, `testSend()`, `preview()`, `readiness()`, `recipientCount()` and
+  the batch `stats()`. `list()` now passes the `status` / `search` /
+  `scheduled_from` / `scheduled_to` filters, `sort` and `include=stats`, and
+  `get()` takes a query array for `include=top_links,variants`.
+- **Send safety posture (explicit, per call).** `send(int|string $id, bool
+  $confirm = false)` only sends with `confirm: true`; otherwise it throws the
+  new `Recado\Sdk\Exception\CampaignSendNotConfirmedException` **before any
+  HTTP request is made**, so an accidental `send()` never reaches the audience.
+  This replaces the previous "the resource simply has no write methods"
+  posture; the file docblock and the README document the new one.
+- `SegmentsResource` (`list`, `cursor`, `get`, `create`, `update`, `delete`)
+  with a `Segment` DTO. The condition tree stays a plain array — no query DSL.
+- `WebhooksResource` (`list`, `create`, `update`, `delete`) with a
+  `WebhookEndpoint` DTO. `create()` is the only place the signing `secret` is
+  ever returned. Events may be passed as plain strings or as cases of the new
+  `Recado\Sdk\Webhooks\WebhookEvent` enum, which carries the full
+  subscribable catalog including the campaign lifecycle events
+  `campaign.scheduled`, `campaign.started`, `campaign.sent`, `campaign.failed`
+  and `campaign.cancelled`.
+- `EventsResource` (`list`, `cursor`, `forContact`, `forContactCursor`) with an
+  `EventOccurrence` DTO — the read side of `send()->track()`.
+- All three resources are reachable from `RecadoClient` (`segments()`,
+  `webhooks()`, `events()`) and from the `Recado` facade, and paginate through
+  the usual `Paginated` + `cursor()` conventions.
+- New DTOs `CampaignPreview`, `CampaignReadiness` + `CampaignReadinessCheck`
+  (with a `failures()` helper), `CampaignTopLink` and `CampaignVariant`. The
+  `Campaign` DTO gained the nullable `topLinks` / `variants` properties — null
+  means "not requested", an empty array means "requested and empty".
+
+### Notes
+
+- The campaign endpoints beyond create/update/send/schedule/unschedule ship
+  with the API issues that introduce them; calling one against an older server
+  surfaces the usual `404`/`405` through the exception hierarchy.
+
 ## [2.4.0] - 2026-09-09
 
 ### Added
@@ -365,7 +406,8 @@ the same code and tests, renamed. Everything brand-carrying is breaking:
   (wrappable in a Laravel `LazyCollection`).
 - Read-only campaigns resource (`campaigns()->list()` / `get()` with stats).
 
-[Unreleased]: https://github.com/recado-dev/recado-php/compare/v2.4.0...main
+[Unreleased]: https://github.com/recado-dev/recado-php/compare/v2.5.0...main
+[2.5.0]: https://github.com/recado-dev/recado-php/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/recado-dev/recado-php/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/recado-dev/recado-php/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/recado-dev/recado-php/compare/v2.1.0...v2.2.0

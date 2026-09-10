@@ -1,9 +1,10 @@
 # Recado PHP SDK
 
 Official PHP SDK for the **Recado** REST API v1. It wraps the transactional
-send, contacts, lists, tags, templates, messages and campaigns endpoints behind
-typed resources and readonly DTOs, with first-class error handling and
-idempotency support — plus an optional, batteries-included Laravel integration.
+send, contacts, lists, segments, tags, templates, messages, campaigns, webhook
+endpoints and events behind typed resources and readonly DTOs, with first-class
+error handling and idempotency support — plus an optional, batteries-included
+Laravel integration.
 
 > ⚠️ **Read-only mirror.** This repo is an automated split of the SDK from a
 > private monorepo. **Do not open pull requests here** — they can't be merged
@@ -17,7 +18,8 @@ idempotency support — plus an optional, batteries-included Laravel integration
 ## Features
 
 - Typed resources + readonly DTOs over the full Recado API v1 surface (send,
-  contacts, lists, tags, templates, messages, read-only campaigns).
+  contacts, lists, segments, tags, templates, messages, campaigns, webhook
+  endpoints, events).
 - A precise exception hierarchy with machine `code` branching.
 - Automatic, idempotency-safe retries with exponential backoff.
 - Lazy pagination via `cursor()` generators (no page bookkeeping).
@@ -456,18 +458,127 @@ foreach ($message->events as $event) {
     // $event->type, $event->payload, $event->occurredAt
 }
 
-// Campaigns (read-only by design — no send/schedule from the SDK)
-$campaigns = $client->campaigns()->list(['per_page' => 50]);
+// Campaigns (full lifecycle — see "Campaigns" below)
+$campaigns = $client->campaigns()->list(['status' => 'sent', 'per_page' => 50]);
 $campaign = $client->campaigns()->get(7);
-// $campaign->stats is a populated CampaignStats only on get():
+// $campaign->stats is a populated CampaignStats on get() (and on
+// list(['include' => 'stats'])):
 echo $campaign->stats->openRate ?? 0; // rates are null when undefined
+
+// Segments (the saved queries campaigns target)
+$segments = $client->segments()->list();
+$segment = $client->segments()->create('Active EU subscribers', [
+    'match' => 'all',
+    'conditions' => [
+        ['field' => 'status', 'operator' => 'equals', 'value' => 'subscribed'],
+        ['field' => 'email', 'operator' => 'ends_with', 'value' => '.eu'],
+    ],
+]);
+$client->segments()->get($segment->id)->contactsCount; // live count
+$client->segments()->update($segment->id, ['name' => 'EU subscribers']);
+$client->segments()->delete($segment->id);
+
+// Webhook endpoints (the secret is returned once, by create())
+use Recado\Sdk\Webhooks\WebhookEvent;
+
+$endpoint = $client->webhooks()->create('https://hooks.example.com/recado', [
+    WebhookEvent::CampaignStarted,
+    WebhookEvent::CampaignSent,
+    'contact.unsubscribed', // plain strings work too
+]);
+$endpoint->secret; // store it now — no other endpoint ever returns it
+$client->webhooks()->update($endpoint->id, ['enabled' => false]);
+$client->webhooks()->delete($endpoint->id);
+
+// Events (the read side of track())
+foreach ($client->events()->cursor(['event' => 'order.completed']) as $occurrence) {
+    // $occurrence->eventName, $occurrence->contactEmail, $occurrence->data
+}
+$client->events()->forContact('jane@example.com', ['since' => '2026-09-01T00:00:00Z']);
 ```
 
-The campaigns resource is intentionally read-only: it never sends or schedules
-a campaign. Trigger mass sends from the dashboard, not the SDK.
-
 Paginated endpoints return a `Paginated` DTO exposing `->data` (mapped DTOs),
-`->meta` and `->links`. The tags endpoint returns a flat `Tag[]` array.
+`->meta` and `->links`. The tags and webhooks endpoints return flat arrays.
+
+### Campaigns
+
+The campaigns resource covers the whole newsletter lifecycle: create and edit a
+draft, inspect it before sending, then send, schedule, cancel, duplicate or
+delete it.
+
+```php
+$campaign = $client->campaigns()->create([
+    'name' => 'July product update',
+    'subject' => 'What shipped in July',
+    'editor' => 'markdown', // blocks (default) | html | markdown — immutable
+    'content' => ['source' => '# Hi {{ contact.first_name }}'],
+    'lists' => [3],
+    'segments' => [7],
+]);
+
+$client->campaigns()->update($campaign->id, ['subject' => 'What actually shipped']);
+
+// Look before you leap: how many people, what would fail, what it looks like.
+$client->campaigns()->recipientCount(lists: [3], segments: [7]); // int
+$readiness = $client->campaigns()->readiness($campaign->id);
+foreach ($readiness->failures() as $check) {
+    echo $check->key.': '.$check->code.PHP_EOL; // e.g. quota: quota_exceeded
+}
+$preview = $client->campaigns()->preview($campaign->id, contactEmail: 'jane@example.com');
+$client->campaigns()->testSend($campaign->id, ['me@example.com']);
+```
+
+**Sending requires an explicit confirmation.** `send()` fires real mail at a
+real audience and cannot be recalled once the batch is queued, so the intent has
+to be spelled out at the call site:
+
+```php
+use Recado\Sdk\Exception\CampaignSendNotConfirmedException;
+
+$client->campaigns()->send($campaign->id, confirm: true); // sends
+
+$client->campaigns()->send($campaign->id); // throws CampaignSendNotConfirmedException
+```
+
+Without `confirm: true` the exception is thrown **before any HTTP request is
+made** — a stray or accidental `send()` never reaches the API, let alone the
+audience. (This replaces the old posture, where the resource simply had no write
+methods at all.) Nothing else needs confirming: `schedule()` only arms a future
+send that `unschedule()` or `cancel()` can still stop.
+
+```php
+$client->campaigns()->schedule($campaign->id, '2026-07-05T09:00:00+00:00');
+$client->campaigns()->unschedule($campaign->id);   // back to draft
+$client->campaigns()->cancel($campaign->id);       // scheduled/sending → cancelled
+$copy = $client->campaigns()->duplicate($campaign->id, 'Week 38'); // fresh draft
+$client->campaigns()->delete($campaign->id);       // draft/cancelled/failed only
+```
+
+Reporting:
+
+```php
+// Filters, sorting and embedded stats for a table view.
+$page = $client->campaigns()->list([
+    'status' => ['sent', 'failed'],
+    'search' => 'July',
+    'sort' => '-scheduled_at',
+    'include' => 'stats',
+]);
+
+// Refresh the metrics of rows you already hold (one aggregate query).
+$stats = $client->campaigns()->stats([31, 32]); // [31 => CampaignStats, ...]
+
+// Click and A/B reporting on the detail endpoint.
+$campaign = $client->campaigns()->get(31, ['include' => 'top_links,variants']);
+$campaign->topLinks[0]->url;
+$campaign->variants[0]->isWinner;
+```
+
+Failures keep the API's machine codes on the typed exceptions, untranslated —
+`$e->getErrorCode()` returns `not_sendable`, `missing_subject`,
+`missing_content`, `no_recipients`, `sending_domain_not_verified`,
+`quota_exceeded`, `ab_invalid_variants`, `campaign_not_editable`,
+`campaign_not_cancellable`, `campaign_not_deletable`.
 
 ### Automatic pagination
 
@@ -484,6 +595,9 @@ foreach ($client->contacts()->cursor(['status' => 'subscribed']) as $contact) {
 $client->contacts()->cursor($query);           // Contact
 $client->messages()->cursor($query);           // Message
 $client->campaigns()->cursor($query);          // Campaign
+$client->segments()->cursor($query);           // Segment
+$client->events()->cursor($query);             // EventOccurrence
+$client->events()->forContactCursor($email);   // EventOccurrence
 $client->lists()->cursor($query);              // ContactList
 $client->lists()->contactsCursor($id, $query); // Contact
 $client->templates()->cursor($query);          // Template

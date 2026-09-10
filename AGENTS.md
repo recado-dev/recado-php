@@ -55,6 +55,12 @@ Terse and imperative — do exactly this. Full human reference: [README.md](READ
 - **Template slug** — a `template` send needs that slug to ALREADY exist on the
   Recado server. Confirm with the human (or have them create it there)
   before using it; an unknown slug is rejected (`422 template_not_found`).
+- **Sending a campaign** — `campaigns()->send($id, confirm: true)` fires real
+  mail at a real audience and cannot be recalled. ASK the human before calling
+  it; without `confirm: true` the SDK throws
+  `CampaignSendNotConfirmedException` locally (no request is made), which is
+  the guard, not a formality. `readiness()`, `preview()` and `testSend()` are
+  the safe ways to check a campaign yourself.
 
 ## Discoverability
 
@@ -74,6 +80,10 @@ Beyond email sends, the client exposes:
   — manage device tokens for push delivery.
 - `Recado::sandbox()->simulate($uuid, $event)` — drive the pipeline from a
   sandbox token in CI (see **Testing with the sandbox** in [README.md](README.md)).
+- `Recado::campaigns()` — the newsletter lifecycle (create/update/preview/
+  readiness/schedule/cancel/duplicate/delete + the gated `send`).
+- `Recado::segments()`, `Recado::webhooks()`, `Recado::events()` — campaign
+  targeting, outbound webhook endpoints, and the read side of `track()`.
 
 ## More
 
