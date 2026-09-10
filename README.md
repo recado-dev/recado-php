@@ -425,6 +425,21 @@ $client->send()->subscribe([
 $page = $client->contacts()->list(['status' => 'subscribed', 'per_page' => 50]);
 $contact = $client->contacts()->get('jane@example.com');
 $client->contacts()->update('jane@example.com', ['first_name' => 'Janet']);
+
+// Bulk attribute upsert: up to 500 contacts per request, own 30/min limiter.
+// Update-only (unknown emails come back as `skipped_not_found`, never created)
+// and consent-safe (status, subscribed_at/unsubscribed_at and list memberships
+// are never written). Attributes MERGE, so absent keys survive.
+$result = $client->contacts()->batchUpdate([
+    [
+        'email' => 'jane@example.com',
+        'attributes' => ['plan' => 'pro', 'last_active_at' => '2026-09-10'],
+        'tags_add' => ['power-user'],
+        'tags_remove' => ['trial'],
+    ],
+], idempotencyKey: 'attribute-refresh-2026-09-10');
+// $result['results'][0]['status'] === 'updated' | 'skipped_not_found' | 'invalid_attributes'
+
 $client->contacts()->tags('jane@example.com', add: ['vip'], remove: ['trial']);
 $client->contacts()->cancelAutomationRuns('jane@example.com', automation: 12);
 $client->contacts()->delete('jane@example.com'); // GDPR erase

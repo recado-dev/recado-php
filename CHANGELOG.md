@@ -43,6 +43,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Campaign` DTO gained the nullable `topLinks` / `variants` properties — null
   means "not requested", an empty array means "requested and empty".
 
+- `contacts()->batchUpdate(array $contacts, ?string $idempotencyKey = null)`
+  wraps the new `PATCH /contacts/batch` endpoint: a bulk attribute upsert of up
+  to 500 contacts in one request (its own 30/min limiter, so a full audience
+  refresh no longer spends the shared management budget). Each item carries
+  `email` plus any of `attributes`, `first_name`, `last_name`, `locale`,
+  `tags_add`, `tags_remove`. Attributes are MERGED per contact — keys absent
+  from the payload survive — and the endpoint is deliberately update-only and
+  consent-safe: an unknown email comes back as `skipped_not_found` (never
+  created), and `status`, `subscribed_at`, `unsubscribed_at` and list
+  memberships are never written. The method returns the `data` block
+  (`results`, `updated`, `skipped`, `invalid`); a malformed item is reported as
+  an `invalid_attributes` row with its own `errors` map instead of aborting the
+  batch. The optional idempotency key is sent as `Idempotency-Key`, with the
+  same 24h replay / `409 idempotency_conflict` semantics as `send()->batch()`.
+
 ### Notes
 
 - The campaign endpoints beyond create/update/send/schedule/unschedule ship

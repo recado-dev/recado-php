@@ -110,4 +110,66 @@ final class ContactsTest extends TestCase
         $this->assertSame(['beta'], $body['add']);
         $this->assertSame(['gamma'], $body['remove']);
     }
+
+    public function test_batch_update_posts_the_contacts_envelope(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(200, [
+                'data' => [
+                    'results' => [
+                        ['index' => 0, 'email' => 'jane@example.com', 'status' => 'updated'],
+                        ['index' => 1, 'email' => 'ghost@example.com', 'status' => 'skipped_not_found'],
+                    ],
+                    'updated' => 1,
+                    'skipped' => 1,
+                    'invalid' => 0,
+                ],
+            ]),
+        ], $history);
+
+        $data = $client->contacts()->batchUpdate([
+            ['email' => 'jane@example.com', 'attributes' => ['plan' => 'pro'], 'tags_add' => ['vip']],
+            ['email' => 'ghost@example.com', 'attributes' => ['plan' => 'free']],
+        ]);
+
+        $this->assertSame(1, $data['updated']);
+        $this->assertSame(1, $data['skipped']);
+        $this->assertSame(0, $data['invalid']);
+        $this->assertSame('updated', $data['results'][0]['status']);
+        $this->assertSame('skipped_not_found', $data['results'][1]['status']);
+
+        $request = $history[0]['request'];
+        $this->assertSame('PATCH', $request->getMethod());
+        $this->assertSame('/api/v1/contacts/batch', $request->getUri()->getPath());
+        $this->assertFalse($request->hasHeader('Idempotency-Key'));
+
+        $body = json_decode((string) $request->getBody(), true);
+        $this->assertCount(2, $body['contacts']);
+        $this->assertSame('jane@example.com', $body['contacts'][0]['email']);
+        $this->assertSame(['plan' => 'pro'], $body['contacts'][0]['attributes']);
+        $this->assertSame(['vip'], $body['contacts'][0]['tags_add']);
+    }
+
+    public function test_batch_update_sends_the_idempotency_key_and_reindexes_items(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(200, [
+                'data' => ['results' => [], 'updated' => 0, 'skipped' => 0, 'invalid' => 0],
+            ]),
+        ], $history);
+
+        $client->contacts()->batchUpdate(
+            [3 => ['email' => 'jane@example.com']],
+            idempotencyKey: 'refresh-2026-09-10',
+        );
+
+        $request = $history[0]['request'];
+        $this->assertSame('refresh-2026-09-10', $request->getHeaderLine('Idempotency-Key'));
+
+        // Sparse input keys must not leak into the JSON as an object.
+        $body = json_decode((string) $request->getBody(), true);
+        $this->assertSame([['email' => 'jane@example.com']], $body['contacts']);
+    }
 }

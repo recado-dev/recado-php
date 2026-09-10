@@ -10,8 +10,8 @@ use Recado\Sdk\Http\HttpClient;
 use Recado\Sdk\Resources\Concerns\PaginatesResults;
 
 /**
- * The Contacts resource: subscribe, list, fetch, update, delete, tag and
- * cancel automation runs.
+ * The Contacts resource: subscribe, list, fetch, update (single or in
+ * bulk), delete, tag and cancel automation runs.
  */
 final readonly class ContactsResource
 {
@@ -81,6 +81,41 @@ final readonly class ContactsResource
         $response = $this->http->patch('contacts/'.rawurlencode($email), ['json' => $payload]);
 
         return Contact::fromArray($response['data'] ?? []);
+    }
+
+    /**
+     * Bulk attribute upsert (PATCH /contacts/batch).
+     *
+     * Update-only and consent-safe by design: it never creates a contact
+     * (an unknown email comes back as `skipped_not_found`) and never
+     * writes `status`, `subscribed_at`, `unsubscribed_at` or list
+     * memberships. Attributes are MERGED per contact, so keys absent from
+     * the payload survive.
+     *
+     * Each item carries `email` (required) plus any of `attributes`,
+     * `first_name`, `last_name`, `locale`, `tags_add`, `tags_remove`. One
+     * malformed item never aborts the batch — it comes back as
+     * `invalid_attributes` with its own `errors` map — while the envelope
+     * itself (1..500 items) is validated as a whole (422).
+     *
+     * The endpoint rides its own 30/min limiter, so a full audience
+     * refresh does not spend the shared management budget.
+     *
+     * @param  array<int, array<string, mixed>>  $contacts  1-500 contact payloads.
+     * @return array<string, mixed> The `data` block: results, updated,
+     *                              skipped, invalid.
+     */
+    public function batchUpdate(array $contacts, ?string $idempotencyKey = null): array
+    {
+        $options = ['json' => ['contacts' => array_values($contacts)]];
+
+        if ($idempotencyKey !== null) {
+            $options['idempotency_key'] = $idempotencyKey;
+        }
+
+        $response = $this->http->patch('contacts/batch', $options);
+
+        return $response['data'] ?? [];
     }
 
     /**
