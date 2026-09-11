@@ -543,6 +543,56 @@ $preview = $client->campaigns()->preview($campaign->id, contactEmail: 'jane@exam
 $client->campaigns()->testSend($campaign->id, ['me@example.com']);
 ```
 
+#### A/B testing
+
+Pass `ab_test` and `variants` to the same `create()` / `update()` calls — the
+whole test is authored in one request, no dashboard round trip:
+
+```php
+$campaign = $client->campaigns()->create([
+    'name' => 'July product update',
+    'editor' => 'markdown',
+    'subject' => 'What shipped in July',       // the base every variant inherits
+    'content' => ['source' => '# Hi {{ contact.first_name }}'],
+    'lists' => [3],
+    'ab_test' => [
+        'enabled' => true,
+        'test_fraction' => 0.2,        // 0.1..0.5 of the audience (default 0.2)
+        'winner_metric' => 'opens',    // opens | clicks       (default opens)
+        'test_duration_minutes' => 240, // 30..2880            (default 240)
+    ],
+    'variants' => [
+        ['subject' => 'What shipped in July'],   // inherits the campaign body
+        ['subject' => 'July: 11 new things', 'content' => ['source' => '# Eleven']],
+    ],
+]);
+
+$campaign->abTest->variants[0]->label; // 'A' — labels are server-assigned
+```
+
+Every variant field (`subject`, `preheader`, `from_name`, `from_email`,
+`content`) is optional and a null one inherits the campaign's own; the variant
+content always uses the campaign's editor shape, since a variant never has an
+editor of its own. `variants` replaces the whole set on each write, so editing
+or removing one means sending the set you want; `['enabled' => false]` turns the
+test off and clears them.
+
+The authored test comes back as `$campaign->abTest` on every read and write
+(no `include` needed). Once the test group has gone out it is frozen:
+
+```php
+if ($campaign->abTest?->locked) {
+    // ab_test_state is testing/deciding/finished — a write touching the
+    // variants now is a 422 with code ab_test_locked.
+}
+```
+
+Two variants are required to SEND (not to save a half-built draft) — the
+`ab_variants` readiness check reports `ab_invalid_variants`, or
+`missing_subject` / `missing_content` with the offending label in its meta.
+Enabling the test needs the A/B plan feature; without it the write is a 422
+with `ab_test_requires_plan`.
+
 **Sending requires an explicit confirmation.** `send()` fires real mail at a
 real audience and cannot be recalled once the batch is queued, so the intent has
 to be spelled out at the call site:

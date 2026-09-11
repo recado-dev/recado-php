@@ -5,25 +5,36 @@ declare(strict_types=1);
 namespace Recado\Sdk\Dto;
 
 /**
- * An A/B variant with its own engagement numbers, returned by
- * GET /campaigns/{id}?include=variants.
+ * An A/B variant, in both of the shapes the API returns it in.
  *
- * Reporting only: variants are authored in the dashboard, never through the
- * API. The winner's numbers include the remainder send.
+ * The AUTHORED fields (subject, preheader, sender, content) come back on the
+ * `ab_test` block of every campaign read and write: a null one means the
+ * variant inherits that campaign field, which is exactly the distinction a
+ * client editing the draft needs. The ENGAGEMENT fields (sent, delivered,
+ * opens, clicks, rates) come back on `include=variants` and are null
+ * otherwise. The winner's numbers include the remainder send.
  */
 final readonly class CampaignVariant
 {
+    /**
+     * @param  array<string, mixed>|null  $content  The authored body in the
+     *                                              campaign's editor shape.
+     */
     public function __construct(
         public ?int $id,
         public ?string $label,
         public ?string $subject,
         public ?bool $isWinner,
-        public ?int $sent,
-        public ?int $delivered,
-        public ?int $uniqueOpens,
-        public ?int $uniqueClicks,
-        public ?float $openRate,
-        public ?float $clickRate,
+        public ?int $sent = null,
+        public ?int $delivered = null,
+        public ?int $uniqueOpens = null,
+        public ?int $uniqueClicks = null,
+        public ?float $openRate = null,
+        public ?float $clickRate = null,
+        public ?string $preheader = null,
+        public ?string $fromName = null,
+        public ?string $fromEmail = null,
+        public ?array $content = null,
     ) {}
 
     /**
@@ -42,6 +53,10 @@ final readonly class CampaignVariant
             uniqueClicks: isset($data['unique_clicks']) ? (int) $data['unique_clicks'] : null,
             openRate: isset($data['open_rate']) ? (float) $data['open_rate'] : null,
             clickRate: isset($data['click_rate']) ? (float) $data['click_rate'] : null,
+            preheader: isset($data['preheader']) ? (string) $data['preheader'] : null,
+            fromName: isset($data['from_name']) ? (string) $data['from_name'] : null,
+            fromEmail: isset($data['from_email']) ? (string) $data['from_email'] : null,
+            content: is_array($data['content'] ?? null) ? $data['content'] : null,
         );
     }
 }

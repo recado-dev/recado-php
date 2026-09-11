@@ -29,7 +29,8 @@ use Recado\Sdk\Resources\Concerns\PaginatesResults;
  * Failures keep the API's machine codes: `ValidationException::getErrorCode()`
  * returns `not_sendable`, `missing_subject`, `missing_content`,
  * `no_recipients`, `sending_domain_not_verified`, `quota_exceeded`,
- * `ab_invalid_variants`, `campaign_not_editable`, `campaign_not_cancellable`,
+ * `ab_invalid_variants`, `ab_test_locked`, `ab_test_requires_plan`,
+ * `campaign_not_editable`, `campaign_not_cancellable`,
  * `campaign_not_deletable` and friends, untranslated.
  */
 final readonly class CampaignsResource
@@ -118,7 +119,20 @@ final readonly class CampaignsResource
      *                                         from_name, from_email, editor
      *                                         (`blocks`|`html`|`markdown`,
      *                                         immutable afterwards), content,
-     *                                         lists, segments.
+     *                                         lists, segments, plus the A/B
+     *                                         pair below.
+     *
+     * **A/B testing.** `ab_test` carries the configuration
+     * (`enabled` — the only required key —, `test_fraction` 0.1..0.5,
+     * `winner_metric` `opens`|`clicks`, `test_duration_minutes` 30..2880,
+     * defaulting to 0.2 / opens / 240) and `variants` the 2..4 alternatives:
+     * `subject`, `preheader`, `from_name`, `from_email` and `content`, each
+     * optional and each inheriting the campaign's own field when null. The
+     * whole set is replaced on every write and the labels A..D are assigned
+     * server-side in array order, so a `label` you pass is ignored. The
+     * campaign's `editor` also governs the variant content shape — a variant
+     * never has an editor of its own. Without the A/B plan feature, enabling
+     * the test is a `422` (`ab_test_requires_plan`).
      */
     public function create(array $payload): Campaign
     {
@@ -133,6 +147,12 @@ final readonly class CampaignsResource
      * Only drafts are editable (`422` + `campaign_not_editable` otherwise) and
      * `editor` can never be changed. Targeting is only touched when the
      * `lists`/`segments` key is present; pass `[]` to clear it.
+     *
+     * Variants follow the same whole-set replacement as create(): send
+     * `variants` to add, edit or remove them, and `ab_test.enabled = false`
+     * to turn the test off (which clears them). Once the test group has gone
+     * out the variants are frozen — `$campaign->abTest->locked` says so, and
+     * a write touching them is a `422` (`ab_test_locked`).
      *
      * @param  array<string, mixed>  $payload
      */

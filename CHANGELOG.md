@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A/B campaign authoring.** `CampaignsResource::create()` and `update()` accept
+  the `ab_test` configuration (`enabled`, `test_fraction`, `winner_metric`,
+  `test_duration_minutes`) and a `variants` array of 2..4 alternatives
+  (`subject`, `preheader`, `from_name`, `from_email`, `content` — each optional,
+  each inheriting the campaign field when null). Variants are replaced as a
+  whole set and their A..D labels are assigned server-side in array order.
+- `Campaign::$abTest`, a new `CampaignAbTest` DTO carrying the authored
+  configuration, the `state`, a `locked` flag and the variants. It is present on
+  every campaign read and write, unlike the `include=variants` engagement
+  breakdown.
+- `CampaignVariant` gained the authored fields `preheader`, `fromName`,
+  `fromEmail` and `content` alongside its existing engagement numbers; both
+  halves are optional, so the DTO now describes the variant in either shape.
+- New error codes surfaced by `ValidationException::getErrorCode()`:
+  `ab_test_locked` (the test is already running) and `ab_test_requires_plan`.
+
 ## [2.5.0] - 2026-09-10
 
 ### Added

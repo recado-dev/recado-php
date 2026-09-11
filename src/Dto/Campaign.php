@@ -13,6 +13,10 @@ namespace Recado\Sdk\Dto;
  * (`include=top_links,variants`) — an A/B-less campaign asked for `variants`
  * gets an empty array, which is how "requested but empty" stays distinct from
  * "not requested".
+ *
+ * `abTest` is the AUTHORED test (configuration + the variants as written) and
+ * needs no include: the detail, create and update endpoints all return it.
+ * It is null on list rows, which never carry it.
  */
 final readonly class Campaign
 {
@@ -36,6 +40,7 @@ final readonly class Campaign
         public ?CampaignStats $stats,
         public ?array $topLinks = null,
         public ?array $variants = null,
+        public ?CampaignAbTest $abTest = null,
     ) {}
 
     /**
@@ -71,6 +76,10 @@ final readonly class Campaign
             }
         }
 
+        $abTest = is_array($data['ab_test'] ?? null)
+            ? CampaignAbTest::fromArray($data['ab_test'])
+            : null;
+
         return new self(
             id: isset($data['id']) ? (int) $data['id'] : null,
             name: isset($data['name']) ? (string) $data['name'] : null,
@@ -87,6 +96,7 @@ final readonly class Campaign
             stats: $stats,
             topLinks: $topLinks,
             variants: $variants,
+            abTest: $abTest,
         );
     }
 }
