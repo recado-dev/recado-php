@@ -7,12 +7,16 @@ namespace Recado\Sdk;
 use GuzzleHttp\ClientInterface;
 use Recado\Sdk\Exception\RecadoConfigurationException;
 use Recado\Sdk\Http\HttpClient;
+use Recado\Sdk\Resources\BroadcastsResource;
 use Recado\Sdk\Resources\CampaignsResource;
 use Recado\Sdk\Resources\ContactsResource;
+use Recado\Sdk\Resources\DeliveryResource;
 use Recado\Sdk\Resources\EventsResource;
+use Recado\Sdk\Resources\ImportsResource;
 use Recado\Sdk\Resources\ListsResource;
 use Recado\Sdk\Resources\MessagesResource;
 use Recado\Sdk\Resources\NotificationsResource;
+use Recado\Sdk\Resources\NotificationTemplatesResource;
 use Recado\Sdk\Resources\PushTokensResource;
 use Recado\Sdk\Resources\SandboxResource;
 use Recado\Sdk\Resources\SegmentsResource;
@@ -79,6 +83,14 @@ final class RecadoClient
     private ?WebhooksResource $webhooks = null;
 
     private ?EventsResource $events = null;
+
+    private ?BroadcastsResource $broadcasts = null;
+
+    private ?NotificationTemplatesResource $notificationTemplates = null;
+
+    private ?ImportsResource $imports = null;
+
+    private ?DeliveryResource $delivery = null;
 
     /**
      * @param  array<string, mixed>  $options  Transport/resilience options applied
@@ -202,5 +214,25 @@ final class RecadoClient
     public function events(): EventsResource
     {
         return $this->events ??= new EventsResource($this->http);
+    }
+
+    public function broadcasts(): BroadcastsResource
+    {
+        return $this->broadcasts ??= new BroadcastsResource($this->http);
+    }
+
+    public function notificationTemplates(): NotificationTemplatesResource
+    {
+        return $this->notificationTemplates ??= new NotificationTemplatesResource($this->http);
+    }
+
+    public function imports(): ImportsResource
+    {
+        return $this->imports ??= new ImportsResource($this->http);
+    }
+
+    public function delivery(): DeliveryResource
+    {
+        return $this->delivery ??= new DeliveryResource($this->http);
     }
 }

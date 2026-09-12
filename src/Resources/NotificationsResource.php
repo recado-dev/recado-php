@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Recado\Sdk\Resources;
 
+use Recado\Sdk\Dto\NotificationAnalytics;
 use Recado\Sdk\Dto\NotificationBatchResult;
 use Recado\Sdk\Dto\NotificationResult;
 use Recado\Sdk\Exception\RecadoException;
@@ -99,5 +100,21 @@ final readonly class NotificationsResource
         $response = $this->http->post('notifications/batch', $options);
 
         return NotificationBatchResult::fromArray($response['data'] ?? []);
+    }
+
+    /**
+     * The rolling 30-day push / in-app aggregation
+     * (GET /notifications/analytics) — the answer to "how is the push channel
+     * doing?", which the messages endpoint cannot give you because direct API
+     * notifications are N loose messages with no campaign to hang stats on.
+     *
+     * Unlike delivery health this DOES work inside a sandbox: intercepted sends
+     * are recorded, so it is how you read back a test run.
+     */
+    public function analytics(): NotificationAnalytics
+    {
+        $response = $this->http->get('notifications/analytics');
+
+        return NotificationAnalytics::fromArray($response['data'] ?? []);
     }
 }

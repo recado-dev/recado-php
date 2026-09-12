@@ -14,6 +14,12 @@ namespace Recado\Sdk\Dto;
  * gets an empty array, which is how "requested but empty" stays distinct from
  * "not requested".
  *
+ * `inArchive` and `premium` are the publication flags: whether the campaign is
+ * listed on the project's public archive and RSS feed once sent, and whether it
+ * only goes to paid subscribers. Both are editable on drafts only, and
+ * `premium: true` is rejected (`premium_monetization_disabled`) while the
+ * project's monetization is off.
+ *
  * `abTest` is the AUTHORED test (configuration + the variants as written) and
  * needs no include: the detail, create and update endpoints all return it.
  * It is null on list rows, which never carry it.
@@ -41,6 +47,8 @@ final readonly class Campaign
         public ?array $topLinks = null,
         public ?array $variants = null,
         public ?CampaignAbTest $abTest = null,
+        public ?bool $inArchive = null,
+        public ?bool $premium = null,
     ) {}
 
     /**
@@ -97,6 +105,8 @@ final readonly class Campaign
             topLinks: $topLinks,
             variants: $variants,
             abTest: $abTest,
+            inArchive: isset($data['in_archive']) ? (bool) $data['in_archive'] : null,
+            premium: isset($data['premium']) ? (bool) $data['premium'] : null,
         );
     }
 }

@@ -10,6 +10,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Lists write surface.** `ListsResource::update()` (PATCH `/lists/{id}` —
+  membership untouched) and `delete()` (the membership rows go, the contacts
+  survive).
+- **Tags CRUD.** `TagsResource::create()` (create-or-**find** by name, matched
+  case-insensitively: an existing tag comes back unchanged), `update()` and
+  `delete()`. The `Tag` DTO gained the preference-center trio `isPublic`,
+  `publicLabel`, `publicDescription` plus `createdAt`, so a tag can be published
+  as an opt-in checkbox on the project's preference center.
+- **`BroadcastsResource`** — the whole `/broadcasts` lifecycle (list, cursor,
+  get, create, update, delete, send, schedule, unschedule, cancel, testSend,
+  recipientCount) with the `Broadcast`, `BroadcastStats` and
+  `BroadcastRecipientCounts` DTOs. A broadcast is a mass in-app/push send, the
+  notification sibling of a campaign. `send($id, confirm: true)` carries the
+  SAME local guard as a campaign send: without the confirmation it throws
+  `CampaignSendNotConfirmedException` before any HTTP request is made (the
+  exception gained a `forBroadcast()` factory so one type still covers both).
+- **Webhook operations.** `WebhooksResource::toggle()` (PUT
+  `/webhooks/{id}/toggle` — enabling a disabled endpoint also resets
+  `consecutive_failures` and clears `disabled_at`, which is how you recover one
+  that auto-disabled), `ping()` (answers QUEUED, not delivered) and
+  `deliveries()` / `deliveriesCursor()` over the new `WebhookDelivery` DTO. A
+  delivery with no response at all reports `status: null`, never a `0`.
+- **`NotificationTemplatesResource`** — CRUD plus per-locale variants
+  (`putVariant()` / `deleteVariant()`) with the `NotificationTemplate` and
+  `NotificationTemplateVariant` DTOs. A variant is a FULL replace: an omitted
+  `action_url`/`icon` is reset for that locale, not inherited from the base.
+- **`MessagesResource::resend()`** — POST `/messages/{uuid}/resend`, which
+  queues a BRAND-NEW message with the original's recipient and rendered content.
+  Suppression, quota/sandbox cap and warm-up all re-run, so it keeps the machine
+  codes `message_not_resendable`, `contact_not_found`,
+  `sending_domain_not_verified`, `recipient_suppressed`, `quota_exceeded` and
+  `sandbox_cap_exceeded`.
+- **Campaign publication flags.** `Campaign::$inArchive` and `$premium`, and the
+  matching `in_archive` / `premium` keys on `campaigns()->create()` and
+  `update()`. Turning premium ON requires the project's monetization to be
+  enabled — otherwise the write is refused with the new error code
+  `premium_monetization_disabled` and nothing is written; turning it off is
+  always allowed.
+- **`DeliveryResource::health()`** — GET `/delivery/health` with the
+  `DeliveryHealth`, `SendingDomainHealth`, `SuppressionPressure` and
+  `SesAccountQuota` DTOs: per verified identity the breaker's rolling
+  bounce/complaint rates plus a traffic light, the project's suppression
+  pressure, and a BYO-SES tenant's own account quota. Read-only by design —
+  resuming a paused identity stays a human action in the dashboard. A sandbox
+  token is refused with the code `not_available_in_sandbox`.
+- **`NotificationsResource::analytics()`** — GET `/notifications/analytics` with
+  the `NotificationAnalytics`, `NotificationChannelStats` and
+  `PushDeviceRegistry` DTOs: the rolling 30-day push / in-app aggregation. Works
+  inside a sandbox, so it is how you read a test run back.
+- **`ImportsResource`** (`create`, `list`, `cursor`, `get`) with the `Import`
+  DTO — bulk contact imports, the only surface that creates contacts in bulk
+  WITH their consent state. Asynchronous: `create()` answers `202` with a
+  pending run, poll `get()` until `Import::isFinished()`. An import never
+  resurrects an opt-out, and `status` accepts words, never booleans.
+- New client accessors `broadcasts()`, `notificationTemplates()`, `imports()`
+  and `delivery()`, mirrored on the `Recado` facade.
+
 - **A/B campaign authoring.** `CampaignsResource::create()` and `update()` accept
   the `ab_test` configuration (`enabled`, `test_fraction`, `winner_metric`,
   `test_duration_minutes`) and a `variants` array of 2..4 alternatives

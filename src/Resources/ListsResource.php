@@ -62,6 +62,31 @@ final readonly class ListsResource
     }
 
     /**
+     * Partially update a list (PATCH /lists/{id}).
+     *
+     * Membership is untouched. `name` stays unique per project (the list
+     * itself excluded); a list outside the project is `404` + `list_not_found`.
+     *
+     * @param  array<string, mixed>  $payload  Any of `name`, `description`.
+     */
+    public function update(int $listId, array $payload): ContactList
+    {
+        $response = $this->http->patch('lists/'.$listId, ['json' => $payload]);
+
+        return ContactList::fromArray($response['data'] ?? []);
+    }
+
+    /**
+     * Delete a list (DELETE /lists/{id}).
+     *
+     * Membership rows go with it; the contacts themselves are kept.
+     */
+    public function delete(int $listId): void
+    {
+        $this->http->delete('lists/'.$listId);
+    }
+
+    /**
      * List a list's contacts (GET /lists/{id}/contacts).
      *
      * @param  array<string, mixed>  $query

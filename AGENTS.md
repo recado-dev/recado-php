@@ -83,7 +83,16 @@ Beyond email sends, the client exposes:
 - `Recado::campaigns()` — the newsletter lifecycle (create/update/preview/
   readiness/schedule/cancel/duplicate/delete + the gated `send`).
 - `Recado::segments()`, `Recado::webhooks()`, `Recado::events()` — campaign
-  targeting, outbound webhook endpoints, and the read side of `track()`.
+  targeting, outbound webhook endpoints (create/update/toggle/ping/deliveries),
+  and the read side of `track()`.
+- `Recado::broadcasts()` — mass in-app/push sends. Like a campaign send,
+  `send($id, confirm: true)` is the only way to start one; ASK the human first.
+- `Recado::notificationTemplates()` — reusable in-app/push content by slug,
+  with per-locale variants.
+- `Recado::imports()` — bulk contact imports with their consent state
+  (asynchronous: poll until the run is finished).
+- `Recado::delivery()->health()` and `Recado::notifications()->analytics()` —
+  read-only observability. Delivery health is refused in a sandbox.
 
 ## More
 

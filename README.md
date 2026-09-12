@@ -18,8 +18,9 @@ Laravel integration.
 ## Features
 
 - Typed resources + readonly DTOs over the full Recado API v1 surface (send,
-  contacts, lists, segments, tags, templates, messages, campaigns, webhook
-  endpoints, events).
+  contacts, imports, lists, segments, tags, templates, notification templates,
+  messages, campaigns, broadcasts, webhook endpoints, events, delivery health
+  and notification analytics).
 - A precise exception hierarchy with machine `code` branching.
 - Automatic, idempotency-safe retries with exponential backoff.
 - Lazy pagination via `cursor()` generators (no page bookkeeping).
@@ -449,9 +450,32 @@ $lists = $client->lists()->list();
 $list = $client->lists()->create('Newsletter', 'Weekly digest');
 $client->lists()->attachContact($list->id, 'jane@example.com');
 $client->lists()->detachContact($list->id, 'jane@example.com');
+$client->lists()->update($list->id, ['name' => 'Weekly digest']); // membership untouched
+$client->lists()->delete($list->id);                              // contacts survive
 
-// Tags (flat array)
+// Tags (flat array) — full CRUD, including the preference-center fields
 $tags = $client->tags()->list();
+// create() is create-or-FIND: an existing name (matched case-insensitively)
+// comes back unchanged, so it never repaints a tag someone already curated.
+$tag = $client->tags()->create('vip', [
+    'color' => '#16a34a',
+    'is_public' => true,                  // shows as an opt-in checkbox on the
+    'public_label' => 'Insider news',     // preference center, labelled by
+    'public_description' => 'Occasional early access.',
+]);
+$client->tags()->update($tag->id, ['public_label' => 'Insiders']);
+$client->tags()->delete($tag->id); // detached from every contact; contacts survive
+
+// Bulk contact imports — the only surface that creates contacts in bulk WITH
+// their consent state. Asynchronous: poll until the run is finished.
+$import = $client->imports()->create([
+    ['email' => 'ada@example.com', 'first_name' => 'Ada', 'tags' => ['vip']],
+    ['email' => 'grace@example.com', 'status' => 'unsubscribed'],
+], ['lists' => [12], 'tags' => ['migration-2026']]);
+
+$import = $client->imports()->get($import->id);
+$import->isFinished(); // status is completed or failed
+$import->invalidStatusRows; // a warning: the row imported, its status did not parse
 
 // Templates
 $templates = $client->templates()->list();
@@ -466,12 +490,32 @@ $client->templates()->putVariant('welcome', 'es', [
     'body_html' => '<p>Hola</p>',
 ]);
 
-// Messages (read-only)
+// Notification templates (the in-app/push sibling — addressed by slug, which is
+// what notifications()->send() accepts as `template`)
+$client->notificationTemplates()->create([
+    'name' => 'Order shipped',
+    'slug' => 'order-shipped',
+    'title' => 'On its way, {{ contact.first_name }}',
+    'body' => 'Your order left the warehouse.',
+    'action_url' => 'myapp://orders/42', // deep links are allowed, scripts never
+]);
+// A variant is a FULL replace: omitting action_url RESETS it for that locale.
+$client->notificationTemplates()->putVariant('order-shipped', 'es-MX', [
+    'title' => 'En camino',
+    'body' => 'Tu pedido salió del almacén.',
+]);
+$client->notificationTemplates()->delete('order-shipped');
+
+// Messages
 $messages = $client->messages()->list(['status' => 'delivered']);
 $message = $client->messages()->get('11111111-2222-...');
 foreach ($message->events as $event) {
     // $event->type, $event->payload, $event->occurredAt
 }
+// Resend: queues a BRAND-NEW message with the original's recipient and rendered
+// content. Suppression, quota and warm-up all re-run, so the copy can still be
+// refused (`message_not_resendable`, `recipient_suppressed`, `quota_exceeded`).
+$copy = $client->messages()->resend($message->uuid);
 
 // Campaigns (full lifecycle — see "Campaigns" below)
 $campaigns = $client->campaigns()->list(['status' => 'sent', 'per_page' => 50]);
@@ -503,7 +547,31 @@ $endpoint = $client->webhooks()->create('https://hooks.example.com/recado', [
 ]);
 $endpoint->secret; // store it now — no other endpoint ever returns it
 $client->webhooks()->update($endpoint->id, ['enabled' => false]);
+// toggle() is how you RECOVER an endpoint that auto-disabled after 10 failed
+// deliveries: enabling it also resets consecutive_failures and disabled_at.
+$client->webhooks()->toggle($endpoint->id, true);
+// ping() answers "queued", not "delivered" — read the outcome back from the log.
+$client->webhooks()->ping($endpoint->id);
+foreach ($client->webhooks()->deliveriesCursor($endpoint->id) as $attempt) {
+    // $attempt->event, $attempt->status (null = no response), $attempt->success
+}
 $client->webhooks()->delete($endpoint->id);
+
+// Delivery health (read-only; production projects only — a sandbox token gets
+// a ValidationException with the code `not_available_in_sandbox`)
+$health = $client->delivery()->health();
+foreach ($health->pausedDomains() as $domain) {
+    // The reputation breaker is holding this identity. Resuming it is a HUMAN
+    // action in the dashboard; there is no API for it.
+    $domain->domain; $domain->breaker['tripped_at'];
+}
+$health->suppressions->global; // THIS project's contacts on the shared list
+
+// Notification analytics (works in a sandbox too — intercepted sends are
+// recorded, so this is how you read back a test run)
+$analytics = $client->notifications()->analytics();
+$analytics->channel('push')?->openRate; // null on a zero denominator
+$analytics->registry->activeTotal;
 
 // Events (the read side of track())
 foreach ($client->events()->cursor(['event' => 'order.completed']) as $occurrence) {
@@ -513,7 +581,7 @@ $client->events()->forContact('jane@example.com', ['since' => '2026-09-01T00:00:
 ```
 
 Paginated endpoints return a `Paginated` DTO exposing `->data` (mapped DTOs),
-`->meta` and `->links`. The tags and webhooks endpoints return flat arrays.
+`->meta` and `->links`. The tags and webhooks listings return flat arrays.
 
 ### Campaigns
 
@@ -637,13 +705,74 @@ $stats = $client->campaigns()->stats([31, 32]); // [31 => CampaignStats, ...]
 $campaign = $client->campaigns()->get(31, ['include' => 'top_links,variants']);
 $campaign->topLinks[0]->url;
 $campaign->variants[0]->isWinner;
+
+// Publication flags (drafts only, like every campaign field):
+//  - in_archive (default true): listed on the project's public archive page
+//    and RSS feed once the campaign has been sent.
+//  - premium (default false): goes to paid subscribers only. Turning it ON
+//    requires the project's monetization to be enabled, otherwise the write is
+//    refused with `premium_monetization_disabled` and NOTHING is written.
+//    Turning it off is always allowed.
+$client->campaigns()->update(31, ['in_archive' => false, 'premium' => true]);
+$campaign->inArchive;
+$campaign->premium;
 ```
 
 Failures keep the API's machine codes on the typed exceptions, untranslated —
 `$e->getErrorCode()` returns `not_sendable`, `missing_subject`,
 `missing_content`, `no_recipients`, `sending_domain_not_verified`,
 `quota_exceeded`, `ab_invalid_variants`, `campaign_not_editable`,
-`campaign_not_cancellable`, `campaign_not_deletable`.
+`campaign_not_cancellable`, `campaign_not_deletable`,
+`premium_monetization_disabled`.
+
+### Broadcasts
+
+A **broadcast** is a mass in-app and/or push notification send — the
+notification sibling of a campaign. Email is deliberately not a broadcast
+channel: mass email is what campaigns are for. The lifecycle mirrors campaigns
+field for field, so code that drives one drives the other.
+
+```php
+// Size the audience per channel BEFORE creating anything. Every sendable
+// channel is counted, not only the ones a broadcast selects.
+$counts = $client->broadcasts()->recipientCount(lists: [3], segments: [7]);
+$counts->for('push');        // 612
+$counts->recipientsTotal;    // the SUM: a contact reachable twice is two sends
+
+$broadcast = $client->broadcasts()->create([
+    'name' => 'Launch day',                 // internal only
+    'title' => 'We launched',
+    'body' => 'The new dashboard is live.',
+    'action_url' => 'myapp://dashboard',    // deep links allowed, scripts never
+    'channels' => ['in_app', 'push'],       // `email` is rejected
+    'lists' => [3],
+    'segments' => [7],
+]);
+
+// Title, body and channels may stay empty while drafting; they are enforced at
+// send time, exactly like a campaign's subject and content.
+$client->broadcasts()->update($broadcast->id, ['channels' => ['push']]);
+
+// A proof to ONE existing contact of the project (an unknown address could only
+// produce a blocked send). It carries no broadcast id, so stats stay clean.
+$client->broadcasts()->testSend($broadcast->id, 'reader@example.com');
+
+// Sending needs the same explicit confirmation a campaign send does: without
+// `confirm: true` this throws CampaignSendNotConfirmedException locally and no
+// request is made.
+$client->broadcasts()->send($broadcast->id, confirm: true);
+
+$client->broadcasts()->schedule($broadcast->id, '2026-12-01T09:00:00Z');
+$client->broadcasts()->unschedule($broadcast->id); // back to draft
+$client->broadcasts()->cancel($broadcast->id);     // ends `cancelled`, not draft
+
+$client->broadcasts()->get($broadcast->id)->stats?->openRate; // null on a zero denominator
+```
+
+Failures keep their machine codes: `not_sendable`, `missing_content`,
+`no_channels`, `no_recipients`, `push_not_entitled`, `push_not_configured`,
+`quota_exceeded`, `broadcast_not_editable`, `broadcast_not_scheduled`,
+`broadcast_not_cancellable`, `recipient_blocked`.
 
 ### Automatic pagination
 

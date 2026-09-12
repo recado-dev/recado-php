@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Recado\Sdk\Resources;
 
+use Recado\Sdk\Dto\Paginated;
+use Recado\Sdk\Dto\WebhookDelivery;
 use Recado\Sdk\Dto\WebhookEndpoint;
 use Recado\Sdk\Http\HttpClient;
+use Recado\Sdk\Resources\Concerns\PaginatesResults;
 use Recado\Sdk\Webhooks\WebhookEvent;
 
 /**
@@ -16,6 +19,8 @@ use Recado\Sdk\Webhooks\WebhookEvent;
  */
 final readonly class WebhooksResource
 {
+    use PaginatesResults;
+
     public function __construct(private HttpClient $http) {}
 
     /**
@@ -88,6 +93,71 @@ final readonly class WebhooksResource
     public function delete(int $id): void
     {
         $this->http->delete('webhooks/'.$id);
+    }
+
+    /**
+     * Enable or disable an endpoint without touching its url/events
+     * (PUT /webhooks/{id}/toggle).
+     *
+     * Enabling a DISABLED endpoint also resets `consecutive_failures` and
+     * clears `disabled_at` — this is how you recover one that auto-disabled
+     * after 10 consecutive failed deliveries.
+     */
+    public function toggle(int $id, bool $enabled): WebhookEndpoint
+    {
+        $response = $this->http->put('webhooks/'.$id.'/toggle', [
+            'json' => ['enabled' => $enabled],
+        ]);
+
+        return WebhookEndpoint::fromArray($response['data'] ?? []);
+    }
+
+    /**
+     * Queue a test `ping` delivery (POST /webhooks/{id}/ping) — the same
+     * signed POST a real event produces.
+     *
+     * It answers `202`, which means QUEUED, not delivered: read the outcome
+     * back from `deliveries()`. Pings reach disabled endpoints too, so this
+     * stays usable while debugging one.
+     *
+     * @return bool The `queued` flag of the response.
+     */
+    public function ping(int $id): bool
+    {
+        $response = $this->http->post('webhooks/'.$id.'/ping');
+
+        return (bool) ($response['data']['queued'] ?? false);
+    }
+
+    /**
+     * The endpoint's delivery attempts, newest first
+     * (GET /webhooks/{id}/deliveries).
+     *
+     * Only the last 100 attempts per endpoint are kept and the signed payload
+     * is never stored, so this is a diagnosis surface, not an audit log.
+     *
+     * @param  array<string, mixed>  $query  per_page (max 100), page.
+     * @return Paginated<WebhookDelivery>
+     */
+    public function deliveries(int $id, array $query = []): Paginated
+    {
+        $response = $this->http->get('webhooks/'.$id.'/deliveries', ['query' => $query]);
+
+        return Paginated::fromArray($response, WebhookDelivery::fromArray(...));
+    }
+
+    /**
+     * Lazily iterate every delivery attempt across all pages
+     * (GET /webhooks/{id}/deliveries).
+     *
+     * @param  array<string, mixed>  $query  per_page (page is managed automatically).
+     * @return \Generator<int, WebhookDelivery>
+     */
+    public function deliveriesCursor(int $id, array $query = []): \Generator
+    {
+        return $this->paginate(
+            fn (int $page): Paginated => $this->deliveries($id, array_merge($query, ['page' => $page])),
+        );
     }
 
     /**
