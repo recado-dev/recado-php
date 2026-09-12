@@ -19,8 +19,9 @@ Laravel integration.
 
 - Typed resources + readonly DTOs over the full Recado API v1 surface (send,
   contacts, imports, lists, segments, tags, templates, notification templates,
-  messages, campaigns, broadcasts, webhook endpoints, events, delivery health
-  and notification analytics).
+  messages, campaigns, broadcasts, waitlists, webhook endpoints, events,
+  sending and custom domains, email verification, the project profile, delivery
+  health and notification analytics).
 - A precise exception hierarchy with machine `code` branching.
 - Automatic, idempotency-safe retries with exponential backoff.
 - Lazy pagination via `cursor()` generators (no page bookkeeping).
@@ -557,8 +558,8 @@ foreach ($client->webhooks()->deliveriesCursor($endpoint->id) as $attempt) {
 }
 $client->webhooks()->delete($endpoint->id);
 
-// Delivery health (read-only; production projects only — a sandbox token gets
-// a ValidationException with the code `not_available_in_sandbox`)
+// Delivery health (read-only; production projects only — a sandbox token is
+// refused with the code `not_available_in_sandbox`, see isNotAvailableInSandbox())
 $health = $client->delivery()->health();
 foreach ($health->pausedDomains() as $domain) {
     // The reputation breaker is holding this identity. Resuming it is a HUMAN
@@ -578,6 +579,41 @@ foreach ($client->events()->cursor(['event' => 'order.completed']) as $occurrenc
     // $occurrence->eventName, $occurrence->contactEmail, $occurrence->data
 }
 $client->events()->forContact('jane@example.com', ['since' => '2026-09-01T00:00:00Z']);
+
+// Delete an event from the catalogue. IRREVERSIBLE, and it takes the whole
+// occurrence log with it (plus any automation EXIT rule on the event). An
+// automation TRIGGERED by it survives and heals the next time you track the
+// same name. A name containing a "/" is refused locally — delete it from the
+// dashboard or over MCP.
+$client->events()->delete('user.registered');
+
+// Who is this key? Most usefully: is it a sandbox credential?
+$profile = $client->project()->get();
+$profile->isSandbox();          // tell a test key from a production one
+$profile->defaultFromEmail;     // what a send inherits when it sets no `from`
+$profile->publicUrl;            // where archive/unsubscribe/webview links live
+
+// Dry-run a segment definition without creating anything
+$preview = $client->segments()->preview([
+    'match' => 'all',
+    'conditions' => [
+        ['field' => 'status', 'operator' => 'equals', 'value' => 'subscribed'],
+        ['field' => 'tags', 'operator' => 'has', 'value' => 'vip'],
+    ],
+], sampleSize: 5);
+$preview->contactsCount;  // 320
+$preview->sample;         // up to 5 Contact DTOs, newest first (0 = count only)
+
+// Clean a list: drop the members that can no longer be emailed. MEMBERSHIP
+// ONLY — contacts are never deleted, never change status, keep their other
+// lists, and no event or outbound webhook fires.
+$result = $client->lists()->clean(12);                       // all three statuses
+$result = $client->lists()->clean(12, ['bounced'], true);    // + invalid addresses
+if ($result->queued) {
+    // Above the platform's inline threshold the work is queued: `removed` is
+    // null and `matching` is what the job will work through.
+    $result->matching;
+}
 ```
 
 Paginated endpoints return a `Paginated` DTO exposing `->data` (mapped DTOs),
@@ -774,6 +810,236 @@ Failures keep their machine codes: `not_sendable`, `missing_content`,
 `quota_exceeded`, `broadcast_not_editable`, `broadcast_not_scheduled`,
 `broadcast_not_cancellable`, `recipient_blocked`.
 
+### Waitlists
+
+A **waitlist** is a hosted pre-launch signup page (`/w/{slug}`) with referral
+positions. The SDK covers the read side plus the one irreversible action:
+authoring stays in the dashboard, because creating a waitlist also creates its
+dedicated contact list and claims a globally unique public slug.
+
+```php
+foreach ($client->waitlists()->cursor(['status' => 'open', 'include' => 'stats']) as $waitlist) {
+    $waitlist->publicUrl;        // on the project's canonical public host
+    $waitlist->membersCount;     // total signups ever recorded
+    $waitlist->stats?->last7Days; // null unless you asked for include=stats
+}
+
+// Members come back in RANK order with a LIVE position. Positions are never
+// stored, and the `email` filter is applied AFTER ranking — a matched member
+// still reports the position it holds on the full list.
+foreach ($client->waitlists()->membersCursor(7) as $member) {
+    $member->position;        // 1-based
+    $member->referralCode;    // the code in their own share link (not a secret)
+    $member->referralsCount;  // credited referrals, never decremented
+}
+```
+
+Launching is **irreversible** — there is no unlaunch, here or in the dashboard:
+
+```php
+$waitlist = $client->waitlists()->launch(7);
+
+// It claims open → launched atomically, stops the public signup page, tags
+// every member contact `early-adopter` through the normal tag path (so
+// `tag_added` automations fire), and creates a DRAFT announcement campaign
+// targeted at the waitlist's own list:
+$waitlist->launchCampaignId;
+
+// Pass false to skip that campaign:
+$client->waitlists()->launch(7, createCampaign: false);
+```
+
+A second launch (and the loser of a concurrent one) throws a
+`ValidationException` with the code `waitlist_already_launched`; an unknown or
+cross-project id is a `NotFoundException` with `waitlist_not_found`.
+
+Permissions reuse the contacts pair: `contacts.view` to read, `contacts.manage`
+to launch.
+
+### Sending domains
+
+The automated-onboarding loop: add the domain, read back the DNS records to
+publish, pipe them into your DNS provider, poll, clean up — without anyone
+opening the dashboard.
+
+```php
+$domain = $client->sendingDomains()->add('mail.example.com');
+
+foreach ($domain->records as $record) {
+    // Shaped for a DNS panel: `host` relative to the zone, `fqdn` alongside,
+    // an MX `priority` split into its own field, a concrete `ttl` suggestion.
+    $record->type; $record->host; $record->fqdn; $record->value; $record->priority;
+}
+
+// `dmarc` is a RECOMMENDATION, never a requirement — sending works without it.
+$domain->dmarc?->value;
+
+// Poll until the provider itself sees your records.
+$domain = $client->sendingDomains()->check($domain->id);
+$domain->isVerified();
+```
+
+`state` is the field worth polling, because it blends the provider's truth with
+Recado's **own** live DNS lookups:
+
+| `state` | Meaning |
+| --- | --- |
+| `verified` | The provider confirms it. The only source of truth for sending. |
+| `detected` | Recado's resolver already sees the value, the provider is still pending. Never promoted to `verified` on that detection alone. |
+| `not_found` | Not published yet. The only "your turn" state — `missingRecords()` returns exactly these. |
+| `failed` | The provider reports failure. |
+
+```php
+foreach ($domain->missingRecords() as $record) {
+    // Still on your side to publish.
+}
+
+$client->sendingDomains()->list();     // every identity, alphabetically
+$client->sendingDomains()->get(12);
+$client->sendingDomains()->delete(12); // also deletes the provider identity
+```
+
+Every representation performs live DNS lookups, so treat these calls as a status
+poll, not a hot path.
+
+Refusals keep their machine codes: `verification_unsupported` (the active
+provider has no domain API — generic SMTP, or Postmark without the optional
+account token — so the row could never leave `pending`), `already_added`,
+`provider_error` and `verification_failed` (the provider could not be reached;
+the stored status is untouched and the call is worth retrying).
+
+`SendingDomain::$warmup` mirrors the dashboard's ramp block for a warming
+identity. **Skipping a ramp and resuming a breaker-paused identity have no API
+and the SDK fakes none**: they are judgement calls about sending reputation and
+stay in the dashboard, where the trip rates sit in front of a human.
+
+Not available in a sandbox — see [Production-only
+endpoints](#production-only-endpoints) below.
+
+### Custom domains
+
+The project's own public hostname (`news.customer.com`). Once verified, public
+pages, webviews, tracking and unsubscribe links are served on it; until then
+(and if it later breaks) everything falls back to the platform subdomain, so
+links in already-sent mail keep working.
+
+**One domain per project.** The collection is a collection for forward
+compatibility; today it holds 0 or 1 element, and `current()` collapses that:
+
+```php
+$domain = $client->customDomains()->add('news.acme.com');
+$domain->record->type;   // CNAME
+$domain->record->value;  // the platform subdomain to point at
+
+$domain = $client->customDomains()->check($domain->id);
+$domain->isVerified();
+$domain->tlsPending;     // DNS ok, certificate still on its way
+$domain->tlsError;       // rate_limited | rejected | api_error | certificate_failed | timeout | exhausted
+
+$client->customDomains()->current();  // ?CustomDomain
+$client->customDomains()->delete($domain->id);
+```
+
+Verification has two gates, both run by `check()`: the CNAME ownership proof
+(A-records deliberately do not verify — failure is `cname_missing`) and a
+TLS-live probe of `https://{hostname}/up`. `verificationError` and `tlsError`
+stay **machine codes**: an integration branches on them, and a localized
+sentence is not a contract.
+
+Adding requires the `custom_domains` plan entitlement (`422`
+`custom_domains_not_entitled`); checking and deleting stay ungated, so a
+downgraded team keeps managing the domain it already has. Other refusals:
+`custom_domain_limit_reached`, and `check_throttled` (one check per domain per
+15 minutes, with `retry_after` seconds on the response body).
+
+Not available in a sandbox — see [Production-only
+endpoints](#production-only-endpoints) below.
+
+### Email verification (billed)
+
+Every contact already carries Recado's **free** verdict
+(`Contact::$verificationStatus`: `valid`, `risky`, `invalid`, `unknown`),
+computed in-process with no external provider. The API only marks, it never
+rejects — the one place the verdict changes behaviour is campaign audiences,
+where `invalid` contacts are excluded like suppressed ones.
+
+On top of that, a project can connect its **own** ZeroBounce or Kickbox account
+and ask for mailbox-level verification. Those lookups are billed per address to
+that account and **there is no refund**, so the SDK keeps the cost gate
+first-class: `run()` takes the estimate **object**, never a bare number.
+
+```php
+$estimate = $client->verification()->estimate(listId: 12);
+
+$estimate->contactsInScope;   // 1840
+$estimate->addresses;         // 1204 — what you would actually pay for
+$estimate->creditsRemaining;  // null when the provider reports no balance
+$estimate->sufficientCredits;
+
+$run = $client->verification()->run($estimate);
+
+while (! $run->isFinished()) {
+    sleep(5);
+    $run = $client->verification()->get($run->id);
+}
+
+$run->updated;  // addresses the provider answered for
+$run->failed;   // lookups that could not be made — a provider outage never
+                // rewrites a stored verdict
+```
+
+`addresses` is smaller than `contactsInScope` whenever addresses already carry
+an external verdict newer than the re-verify window (30 days by default): those
+are skipped and cost nothing, which is what makes re-running the same list
+cheap. Omit both arguments to scope the estimate to the whole audience;
+`contactIds` is capped at 5000.
+
+If the audience moved between the estimate and the run, the platform refuses to
+spend on a figure nobody has seen — and hands you the current one:
+
+```php
+use Recado\Sdk\Exception\VerificationEstimateMismatchException;
+
+try {
+    $run = $client->verification()->run($estimate);
+} catch (VerificationEstimateMismatchException $e) {
+    $fresh = $e->currentEstimate();          // same scope, current numbers
+    $run = $client->verification()->run($fresh);
+}
+```
+
+It extends `ValidationException`, so code that only catches that keeps working.
+Other refusals: `verification_not_configured` (no provider, or one switched off
+— a disabled provider must never spend credits), `409`
+`verification_already_running` (one run per project at a time), `list_not_found`
+and `verification_run_not_found`. The gate applies in a sandbox too.
+
+### Production-only endpoints
+
+Sending domains, custom domains and delivery health are refused for a **sandbox**
+credential: a sandbox never sends externally and never serves customer-facing
+pages, so it has no sending identities, no public hostname and no sending
+reputation — and its token must not reach the production project's.
+
+Branch on the **code**, not the status. The platform is unifying those refusals
+on `404` (they used to be a mix of `404` and `422`), so the SDK exposes the check
+on the exception base class:
+
+```php
+use Recado\Sdk\Exception\RecadoException;
+
+try {
+    $client->sendingDomains()->list();
+} catch (RecadoException $e) {
+    if ($e->isNotAvailableInSandbox()) {
+        // This credential is a sandbox key. Use the production one.
+    }
+}
+```
+
+`$client->project()->get()->isSandbox()` answers the same question up front,
+without provoking a refusal.
+
 ### Automatic pagination
 
 Paginated resources also expose a `cursor()` generator that lazily walks every
@@ -857,12 +1123,16 @@ Every non-2xx response is mapped to a typed exception. All exceptions extend
 - `getStatus(): ?int` — the HTTP status
 - `getBody(): ?array` — the raw decoded response envelope
 - `getMessage(): string` — the human-facing message (standard `\Exception`)
+- `isNotAvailableInSandbox(): bool` — the production-only refusal, matched on the
+  code rather than the status (see [Production-only
+  endpoints](#production-only-endpoints))
 
 | Exception                 | HTTP status | Notes |
 | ------------------------- | ----------- | ----- |
 | `AuthenticationException` | 401         | Missing/invalid/expired token. |
 | `NotFoundException`       | 404         | e.g. `contact_not_found`, `template_not_found`, `message_not_found`; a sandbox `simulate()` from a **production** token gets a bare `404` (no code). |
 | `ValidationException`     | 422         | Validation failures and domain rejections (`recipient_suppressed`, `quota_exceeded`, `template_not_found`, `invalid_status_transition`, sandbox `invalid_event_for_channel` / `link_index_out_of_range`, ...). Adds `errors(): array` (field => messages). |
+| `VerificationEstimateMismatchException` | 422 | Subclass of `ValidationException` for `estimate_mismatch`: a billed verification run was refused because the scope moved. Adds `currentEstimate(): ?VerificationEstimate`, ready to hand back to `run()`. |
 | `RateLimitException`      | 429         | Adds `retryAfter(): ?int` parsed from the `Retry-After` header. |
 | `RecadoConfigurationException` | — (local) | Missing/empty/placeholder base URL (or the decommissioned `mailer.mosaiqo.com` v1.x host) or empty token; thrown at client construction before any request. |
 | `UnsupportedFeatureException` | — (local) | The send relies on something the `/send` API has no field for, or that the SDK config disables (e.g. attachments with `recado-sdk.mail.attachments = 'fail'`). |

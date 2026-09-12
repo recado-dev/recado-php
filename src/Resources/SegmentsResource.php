@@ -6,6 +6,7 @@ namespace Recado\Sdk\Resources;
 
 use Recado\Sdk\Dto\Paginated;
 use Recado\Sdk\Dto\Segment;
+use Recado\Sdk\Dto\SegmentPreview;
 use Recado\Sdk\Http\HttpClient;
 use Recado\Sdk\Resources\Concerns\PaginatesResults;
 
@@ -94,5 +95,25 @@ final readonly class SegmentsResource
     public function delete(int $id): void
     {
         $this->http->delete('segments/'.$id);
+    }
+
+    /**
+     * Dry-run a conditions tree (POST /segments/preview).
+     *
+     * Answers "what would this target?" without creating anything: no segment
+     * row is written, and nothing is left to clean up when the answer is not
+     * what you meant. Validation is byte-identical to create(), so a tree that
+     * previews cleanly is one create will accept.
+     *
+     * @param  array<string, mixed>  $conditions  Same schema and whitelist as create().
+     * @param  int  $sampleSize  0..50 contacts to sample; `0` returns the count only.
+     */
+    public function preview(array $conditions, int $sampleSize = 10): SegmentPreview
+    {
+        $response = $this->http->post('segments/preview', [
+            'json' => ['conditions' => $conditions, 'sample_size' => $sampleSize],
+        ]);
+
+        return SegmentPreview::fromArray($response['data'] ?? []);
     }
 }

@@ -30,6 +30,11 @@ use Recado\Sdk\RecadoClient;
  * @method static \Recado\Sdk\Resources\NotificationTemplatesResource notificationTemplates()
  * @method static \Recado\Sdk\Resources\ImportsResource imports()
  * @method static \Recado\Sdk\Resources\DeliveryResource delivery()
+ * @method static \Recado\Sdk\Resources\WaitlistsResource waitlists()
+ * @method static \Recado\Sdk\Resources\SendingDomainsResource sendingDomains()
+ * @method static \Recado\Sdk\Resources\CustomDomainsResource customDomains()
+ * @method static \Recado\Sdk\Resources\ProjectResource project()
+ * @method static \Recado\Sdk\Resources\VerificationResource verification()
  *
  * @see RecadoClient
  */

@@ -61,6 +61,17 @@ Terse and imperative — do exactly this. Full human reference: [README.md](READ
   `CampaignSendNotConfirmedException` locally (no request is made), which is
   the guard, not a formality. `readiness()`, `preview()` and `testSend()` are
   the safe ways to check a campaign yourself.
+- **Launching a waitlist** — `waitlists()->launch($id)` is IRREVERSIBLE: it
+  closes the public signup page, tags every member contact (firing `tag_added`
+  automations) and creates the announcement campaign. There is no unlaunch, here
+  or in the dashboard. ASK the human.
+- **Starting a verification run** — `verification()->run($estimate)` spends the
+  tenant's OWN ZeroBounce/Kickbox credits, billed per address with NO refund.
+  Read `verification()->estimate(...)` first, show the human the `addresses`
+  figure, and only run when they say so.
+- **Adding or deleting a domain** — `sendingDomains()` and `customDomains()`
+  change how the project's mail is authenticated and where its public pages are
+  served. Deleting a verified one is a live-traffic change. ASK the human.
 
 ## Discoverability
 
@@ -93,6 +104,19 @@ Beyond email sends, the client exposes:
   (asynchronous: poll until the run is finished).
 - `Recado::delivery()->health()` and `Recado::notifications()->analytics()` —
   read-only observability. Delivery health is refused in a sandbox.
+- `Recado::project()->get()` — who this key acts as. Call `->isSandbox()` FIRST
+  when you are unsure whether you hold a test or a production credential.
+- `Recado::waitlists()` — hosted pre-launch signup pages: read the ranked
+  signups freely; `launch()` is gated (see above).
+- `Recado::sendingDomains()` / `Recado::customDomains()` — DNS-driven onboarding
+  for the sending identity and the public hostname. Both are refused in a
+  sandbox; branch on `$e->isNotAvailableInSandbox()`, not on the HTTP status.
+- `Recado::verification()` — billed mailbox-level verification behind an
+  estimate/confirm gate (see above). The FREE verdict is already on every
+  contact as `verificationStatus`.
+- `Recado::segments()->preview($conditions)` and `Recado::lists()->clean($id)` —
+  dry-run a segment definition without writing a row, and drop the members of a
+  list that can no longer be emailed (membership only, contacts untouched).
 
 ## More
 

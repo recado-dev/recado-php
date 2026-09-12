@@ -6,6 +6,7 @@ namespace Recado\Sdk\Resources;
 
 use Recado\Sdk\Dto\Contact;
 use Recado\Sdk\Dto\ContactList;
+use Recado\Sdk\Dto\ListCleanResult;
 use Recado\Sdk\Dto\Paginated;
 use Recado\Sdk\Http\HttpClient;
 use Recado\Sdk\Resources\Concerns\PaginatesResults;
@@ -129,5 +130,40 @@ final readonly class ListsResource
     public function detachContact(int $listId, string $email): void
     {
         $this->http->delete('lists/'.$listId.'/contacts/'.rawurlencode($email));
+    }
+
+    /**
+     * Remove the members that can no longer be emailed (POST /lists/{id}/clean).
+     *
+     * MEMBERSHIP ONLY: contacts are never deleted, never change status, keep
+     * every other list membership, and no subscription event or outbound
+     * webhook fires — membership is not consent.
+     *
+     * Above the platform's inline threshold the same work is QUEUED instead of
+     * run in the request: the result then reports `queued: true` with a null
+     * `removed` and the `matching` count the job will work through.
+     *
+     * @param  array<int, string>|null  $statuses  Any of `unsubscribed`, `bounced`,
+     *                                             `complained`. Null (the default)
+     *                                             means all three; an explicitly
+     *                                             EMPTY array is a different
+     *                                             request ("clean nothing by
+     *                                             status") and is refused with a
+     *                                             `422` unless `$invalidEmails`
+     *                                             is on.
+     * @param  bool  $invalidEmails  Also remove addresses whose verification
+     *                               verdict is `invalid`.
+     */
+    public function clean(int $listId, ?array $statuses = null, bool $invalidEmails = false): ListCleanResult
+    {
+        $payload = ['invalid_emails' => $invalidEmails];
+
+        if ($statuses !== null) {
+            $payload['statuses'] = array_values($statuses);
+        }
+
+        $response = $this->http->post('lists/'.$listId.'/clean', ['json' => $payload]);
+
+        return ListCleanResult::fromArray($response['data'] ?? []);
     }
 }

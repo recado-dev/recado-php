@@ -6,6 +6,7 @@ namespace Recado\Sdk\Resources;
 
 use Recado\Sdk\Dto\EventOccurrence;
 use Recado\Sdk\Dto\Paginated;
+use Recado\Sdk\Exception\UnsupportedFeatureException;
 use Recado\Sdk\Http\HttpClient;
 use Recado\Sdk\Resources\Concerns\PaginatesResults;
 
@@ -76,5 +77,41 @@ final readonly class EventsResource
         return $this->paginate(
             fn (int $page): Paginated => $this->forContact($email, array_merge($query, ['page' => $page])),
         );
+    }
+
+    /**
+     * Delete an event from the project's catalogue (DELETE /events/{name}).
+     *
+     * The name is normalized like every other event surface (trimmed and
+     * lowercased), so `delete('User.Registered')` targets `user.registered`.
+     * `404` `event_not_found` for a name this project never recorded.
+     *
+     * **Irreversible, and it takes history with it.** The whole occurrence log
+     * goes by cascade, and so does any automation EXIT rule on the event — that
+     * automation silently loses that exit. An automation TRIGGERED by the event
+     * survives: the trigger keeps a dormant reference that heals by itself the
+     * next time `send()->track()` sends the same name. A referenced event is
+     * deleted anyway; there is no refusal and no error code for one.
+     *
+     * A name containing a `/` cannot be addressed on this path (a slash is a
+     * path separator and `%2F` is not reliably decoded). The event vocabulary
+     * allows one, so the SDK refuses it locally — before any HTTP request —
+     * rather than deleting the wrong event: delete such an event from the
+     * dashboard or through the MCP `delete_event` tool.
+     *
+     * @throws UnsupportedFeatureException when the name contains a slash.
+     */
+    public function delete(string $name): void
+    {
+        if (str_contains($name, '/')) {
+            throw new UnsupportedFeatureException(
+                'Event names containing a "/" cannot be deleted over HTTP: a slash is a path '
+                .'separator and an encoded one is not reliably decoded. Delete "'.$name.'" from '
+                .'the dashboard or through the MCP delete_event tool, which takes the name as an '
+                .'argument.',
+            );
+        }
+
+        $this->http->delete('events/'.rawurlencode($name));
     }
 }

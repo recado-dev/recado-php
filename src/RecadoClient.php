@@ -10,6 +10,7 @@ use Recado\Sdk\Http\HttpClient;
 use Recado\Sdk\Resources\BroadcastsResource;
 use Recado\Sdk\Resources\CampaignsResource;
 use Recado\Sdk\Resources\ContactsResource;
+use Recado\Sdk\Resources\CustomDomainsResource;
 use Recado\Sdk\Resources\DeliveryResource;
 use Recado\Sdk\Resources\EventsResource;
 use Recado\Sdk\Resources\ImportsResource;
@@ -17,12 +18,16 @@ use Recado\Sdk\Resources\ListsResource;
 use Recado\Sdk\Resources\MessagesResource;
 use Recado\Sdk\Resources\NotificationsResource;
 use Recado\Sdk\Resources\NotificationTemplatesResource;
+use Recado\Sdk\Resources\ProjectResource;
 use Recado\Sdk\Resources\PushTokensResource;
 use Recado\Sdk\Resources\SandboxResource;
 use Recado\Sdk\Resources\SegmentsResource;
+use Recado\Sdk\Resources\SendingDomainsResource;
 use Recado\Sdk\Resources\SendResource;
 use Recado\Sdk\Resources\TagsResource;
 use Recado\Sdk\Resources\TemplatesResource;
+use Recado\Sdk\Resources\VerificationResource;
+use Recado\Sdk\Resources\WaitlistsResource;
 use Recado\Sdk\Resources\WebhooksResource;
 
 /**
@@ -91,6 +96,16 @@ final class RecadoClient
     private ?ImportsResource $imports = null;
 
     private ?DeliveryResource $delivery = null;
+
+    private ?WaitlistsResource $waitlists = null;
+
+    private ?SendingDomainsResource $sendingDomains = null;
+
+    private ?CustomDomainsResource $customDomains = null;
+
+    private ?ProjectResource $project = null;
+
+    private ?VerificationResource $verification = null;
 
     /**
      * @param  array<string, mixed>  $options  Transport/resilience options applied
@@ -234,5 +249,48 @@ final class RecadoClient
     public function delivery(): DeliveryResource
     {
         return $this->delivery ??= new DeliveryResource($this->http);
+    }
+
+    /**
+     * Hosted pre-launch signup pages: read the signups, launch the waitlist.
+     */
+    public function waitlists(): WaitlistsResource
+    {
+        return $this->waitlists ??= new WaitlistsResource($this->http);
+    }
+
+    /**
+     * The project's sending identities — add, publish the records, poll, clean
+     * up, without opening the dashboard. Not available in a sandbox.
+     */
+    public function sendingDomains(): SendingDomainsResource
+    {
+        return $this->sendingDomains ??= new SendingDomainsResource($this->http);
+    }
+
+    /**
+     * The project's own public hostname. Not available in a sandbox.
+     */
+    public function customDomains(): CustomDomainsResource
+    {
+        return $this->customDomains ??= new CustomDomainsResource($this->http);
+    }
+
+    /**
+     * Who this API key acts as, and the defaults every send inherits — most
+     * usefully whether the credential belongs to a sandbox.
+     */
+    public function project(): ProjectResource
+    {
+        return $this->project ??= new ProjectResource($this->http);
+    }
+
+    /**
+     * Billed mailbox-level verification through the project's own provider
+     * account, behind the estimate/confirm cost gate.
+     */
+    public function verification(): VerificationResource
+    {
+        return $this->verification ??= new VerificationResource($this->http);
     }
 }

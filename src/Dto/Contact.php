@@ -7,6 +7,14 @@ namespace Recado\Sdk\Dto;
 /**
  * A contact. `lists` is only populated on the full profile endpoints
  * (GET /contacts/{email}, PATCH, list attach); listing items omit it.
+ *
+ * `verificationStatus` is the platform's OWN verdict about the address
+ * (`valid`, `risky`, `invalid`, `unknown`), computed in-process — no external
+ * provider, no SMTP probe. The API only MARKS, it never rejects: subscribing,
+ * tracking and sending behave exactly the same for a risky or invalid address.
+ * The one place the verdict changes behaviour is CAMPAIGN audiences, where
+ * `invalid` contacts are excluded like suppressed ones (`risky` never is).
+ * A contact that predates verification reports `unknown`, never null.
  */
 final readonly class Contact
 {
@@ -14,6 +22,7 @@ final readonly class Contact
      * @param  array<string, mixed>  $attributes
      * @param  array<int, Tag>  $tags
      * @param  array<int, ContactList>  $lists
+     * @param  array<int, array{reason: string, suggestion?: string}>  $verificationReasons  `suggestion` is only present on `domain_typo`.
      */
     public function __construct(
         public ?string $uuid,
@@ -29,6 +38,9 @@ final readonly class Contact
         public ?string $unsubscribedAt,
         public ?string $createdAt,
         public ?string $updatedAt,
+        public ?string $verificationStatus = null,
+        public array $verificationReasons = [],
+        public ?string $verifiedAt = null,
     ) {}
 
     /**
@@ -50,6 +62,13 @@ final readonly class Contact
             }
         }
 
+        $reasons = [];
+        foreach ($data['verification_reasons'] ?? [] as $reason) {
+            if (is_array($reason)) {
+                $reasons[] = $reason;
+            }
+        }
+
         return new self(
             uuid: isset($data['uuid']) ? (string) $data['uuid'] : null,
             email: isset($data['email']) ? (string) $data['email'] : null,
@@ -64,6 +83,20 @@ final readonly class Contact
             unsubscribedAt: isset($data['unsubscribed_at']) ? (string) $data['unsubscribed_at'] : null,
             createdAt: isset($data['created_at']) ? (string) $data['created_at'] : null,
             updatedAt: isset($data['updated_at']) ? (string) $data['updated_at'] : null,
+            verificationStatus: isset($data['verification_status'])
+                ? (string) $data['verification_status']
+                : null,
+            verificationReasons: $reasons,
+            verifiedAt: isset($data['verified_at']) ? (string) $data['verified_at'] : null,
         );
+    }
+
+    /**
+     * Whether the address cannot receive mail (malformed, or a domain with no
+     * mail route). These contacts are excluded from campaign audiences.
+     */
+    public function isInvalidEmail(): bool
+    {
+        return $this->verificationStatus === 'invalid';
     }
 }

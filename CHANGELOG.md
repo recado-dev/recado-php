@@ -10,6 +10,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`WaitlistsResource`** — hosted pre-launch signup pages: `list()`, `cursor()`,
+  `get()`, `members()`, `membersCursor()` and `launch()`, with the `Waitlist`,
+  `WaitlistStats` and `WaitlistMember` DTOs. Members come back in RANK order with
+  a LIVE position (positions are never stored, and the `email` filter is applied
+  AFTER ranking, so a matched member still reports the position it holds on the
+  full list). `launch()` is IRREVERSIBLE — there is no unlaunch, here or in the
+  dashboard — and creates the draft announcement campaign unless
+  `createCampaign: false`; a second launch keeps the code
+  `waitlist_already_launched`. Authoring stays in the dashboard, so there is no
+  create/update/delete by design.
+- **`SendingDomainsResource`** — the automated-onboarding loop (`list()`, `get()`,
+  `add()`, `check()`, `delete()`) with the `SendingDomain` and `DnsRecord` DTOs.
+  Records are shaped for a DNS panel (relative `host`, absolute `fqdn`, MX
+  `priority` split out, concrete `ttl`) and carry the `state` worth polling —
+  `verified` / `detected` / `not_found` / `failed` — which blends the provider's
+  truth with Recado's own live DNS lookups; `missingRecords()` returns just the
+  "your turn" ones. Refusals keep the codes `verification_unsupported`,
+  `already_added`, `provider_error` and `verification_failed`. Skipping a warm-up
+  ramp and resuming a breaker-paused identity have no API and none is faked.
+- **`CustomDomainsResource`** — the project's own public hostname (`list()`,
+  `current()`, `add()`, `check()`, `delete()`) with the `CustomDomain` and
+  `CustomDomainRecord` DTOs. Both verification gates are reported separately, so
+  "DNS ok, no certificate yet" (`tlsPending`) is distinct from a missing CNAME,
+  and `tlsError` / `verificationError` stay machine codes. Keeps
+  `custom_domains_not_entitled`, `custom_domain_limit_reached` and
+  `check_throttled` (with `retry_after` on the body).
+- **`ProjectResource::get()`** — GET `/project` with the `ProjectProfile` and
+  `ProjectTwin` DTOs: who this API key acts as, and the defaults every send
+  inherits. Most usefully `isSandbox()`, so a client can tell a TEST credential
+  from a production one before it writes anything. Works in a sandbox on purpose.
+  Read-only — there is no `PATCH /project` and none is faked.
+- **`VerificationResource`** — billed mailbox-level verification through the
+  project's OWN ZeroBounce/Kickbox account, with the cost gate first-class:
+  `estimate()` returns a `VerificationEstimate` that REMEMBERS the scope it was
+  priced for, and `run()` takes that object rather than a bare number, so a run
+  can never start on a different scope or on a figure nobody has seen. A stale
+  figure throws the new `VerificationEstimateMismatchException` (a
+  `ValidationException` subclass) whose `currentEstimate()` hands back the fresh
+  estimate, ready to re-confirm. `get()` polls the `VerificationRun`.
+- **`SegmentsResource::preview()`** — POST `/segments/preview` with the
+  `SegmentPreview` DTO: count and sample what a conditions tree would target
+  without writing a segment row. Validation is byte-identical to `create()`.
+- **`ListsResource::clean()`** — POST `/lists/{id}/clean` with the
+  `ListCleanResult` DTO. MEMBERSHIP ONLY: contacts are never deleted, never
+  change status, keep their other lists, and no subscription event or outbound
+  webhook fires. Above the platform's inline threshold the work is queued, and
+  the result then reports `queued: true` with a null `removed` — never a
+  misleading `0`.
+- **`EventsResource::delete()`** — DELETE `/events/{name}`. Irreversible, and it
+  takes the occurrence log and any automation EXIT rule on the event with it. A
+  name containing a `/` is refused LOCALLY with `UnsupportedFeatureException`
+  (a slash is a path separator and an encoded one is not reliably decoded), so
+  the SDK can never delete the wrong event.
+- **`RecadoException::isNotAvailableInSandbox()`** — the production-only refusal
+  (sending domains, custom domains, sender health), matched on the machine code
+  rather than the HTTP status: the platform is unifying those refusals on `404`
+  after shipping a mix of `404` and `422`, and a caller must not have to care
+  which one it got.
+- **Contact verification verdict.** `Contact::$verificationStatus` (`valid`,
+  `risky`, `invalid`, `unknown`), `$verificationReasons` and `$verifiedAt`, plus
+  the `isInvalidEmail()` helper. The API only MARKS, it never rejects — the one
+  place the verdict changes behaviour is campaign audiences, where `invalid`
+  contacts are excluded like suppressed ones (`risky` never is).
+- New client accessors `waitlists()`, `sendingDomains()`, `customDomains()`,
+  `project()` and `verification()`, mirrored on the `Recado` facade.
 - **Lists write surface.** `ListsResource::update()` (PATCH `/lists/{id}` —
   membership untouched) and `delete()` (the membership rows go, the contacts
   survive).
