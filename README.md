@@ -1,8 +1,9 @@
 # Recado PHP SDK
 
 Official PHP SDK for the **Recado** REST API v1. It wraps the transactional
-send, contacts, lists, segments, tags, templates, messages, campaigns, webhook
-endpoints and events behind typed resources and readonly DTOs, with first-class
+send, contacts, lists, segments, tags, templates, messages, campaigns,
+broadcasts, waitlists, webhook endpoints, events, sending and custom domains and
+email verification behind typed resources and readonly DTOs, with first-class
 error handling and idempotency support — plus an optional, batteries-included
 Laravel integration.
 
