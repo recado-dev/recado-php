@@ -698,6 +698,68 @@ Two variants are required to SEND (not to save a half-built draft) — the
 Enabling the test needs the A/B plan feature; without it the write is a 422
 with `ab_test_requires_plan`.
 
+#### Languages (locale variants)
+
+One campaign, one audience, each recipient in their own language.
+`locale_variants` rides the same `create()` / `update()` calls, and each A/B
+variant may carry its own — the full matrix:
+
+```php
+$campaign = $client->campaigns()->create([
+    'name' => 'July product update',
+    'editor' => 'markdown',
+    'subject' => 'What shipped in July',
+    'content' => ['source' => '# Hi {{ contact.first_name }}'],
+    'lists' => [3],
+    'locale_variants' => [
+        ['locale' => 'es', 'subject' => 'Lo que lanzamos en julio', 'content' => ['source' => '# Hola']],
+        ['locale' => 'fr', 'subject' => 'Nouveautes de juillet'],  // French subject, English body
+    ],
+    'variants' => [
+        [
+            'subject' => 'What shipped in July',
+            'locale_variants' => [['locale' => 'es', 'subject' => 'Lo que lanzamos en julio']],
+        ],
+        [
+            'subject' => 'July: 11 new things',
+            'locale_variants' => [['locale' => 'es', 'subject' => 'Julio: 11 novedades']],
+        ],
+    ],
+]);
+
+$campaign->localeVariants[0]->locale;                    // 'es'
+$campaign->abTest->variants[1]->localeVariants[0]->subject; // 'Julio: 11 novedades'
+```
+
+`locale` is required and **normalized**, so `es_mx` and `ES-mx` are the same
+language and listing both is a 422. `subject`, `preheader` and `content` are
+each optional and a null one inherits the layer below — the A/B variant, then
+the campaign. A translation carries **no sender** (who a campaign sends from is
+not a language decision) and no editor of its own: `content` follows the
+campaign's `editor`, exactly like a variant's.
+
+Each list replaces the whole set for **its** scope on every write, so `[]`
+removes every translation there, and a partial update that never mentions the
+key leaves the stored translations untouched. Per recipient the contact's
+`locale` is tried first, then the project's `default_locale`, each as the exact
+tag (`es-MX`) and then as its language prefix (`es`); nothing matches → the
+campaign base, byte-identical to an untranslated campaign.
+
+Both `preview()` and `testSend()` take a `locale`, rendering exactly what a
+recipient in that language would receive:
+
+```php
+$client->campaigns()->preview($campaign->id, locale: 'es');
+$client->campaigns()->testSend($campaign->id, ['me@example.com'], variant: 6, locale: 'es');
+```
+
+The authored translations come back on every read and write (no `include`
+needed) as `$campaign->localeVariants`, with the per-variant ones on
+`$campaign->abTest->variants[*]->localeVariants`; the listing never carries
+them, so a list row has empty arrays. The advisory `locale_variants` readiness
+check never blocks a send — it names in its meta the languages whose resolved
+subject or body would be empty.
+
 **Sending requires an explicit confirmation.** `send()` fires real mail at a
 real audience and cannot be recalled once the batch is queued, so the intent has
 to be spelled out at the call site:

@@ -13,12 +13,22 @@ namespace Recado\Sdk\Dto;
  * client editing the draft needs. The ENGAGEMENT fields (sent, delivered,
  * opens, clicks, rates) come back on `include=variants` and are null
  * otherwise. The winner's numbers include the remainder send.
+ *
+ * `localeVariants` holds this variant's own translations — the per-variant
+ * half of the language matrix, which wins over the campaign's translations for
+ * the recipients assigned to this variant. The API returns them under
+ * `locales.variants[]` rather than inside the `ab_test` block; {@see Campaign}
+ * pairs the two by id, so an engagement-only variant row (`include=variants`)
+ * simply has none.
  */
 final readonly class CampaignVariant
 {
     /**
      * @param  array<string, mixed>|null  $content  The authored body in the
      *                                              campaign's editor shape.
+     * @param  array<int, CampaignLocaleVariant>  $localeVariants  This variant's
+     *                                                             own translations;
+     *                                                             empty when absent.
      */
     public function __construct(
         public ?int $id,
@@ -35,6 +45,7 @@ final readonly class CampaignVariant
         public ?string $fromName = null,
         public ?string $fromEmail = null,
         public ?array $content = null,
+        public array $localeVariants = [],
     ) {}
 
     /**
@@ -57,6 +68,7 @@ final readonly class CampaignVariant
             fromName: isset($data['from_name']) ? (string) $data['from_name'] : null,
             fromEmail: isset($data['from_email']) ? (string) $data['from_email'] : null,
             content: is_array($data['content'] ?? null) ? $data['content'] : null,
+            localeVariants: CampaignLocaleVariant::listFrom($data['locale_variants'] ?? null),
         );
     }
 }

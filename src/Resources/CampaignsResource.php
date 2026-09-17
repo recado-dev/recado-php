@@ -133,6 +133,16 @@ final readonly class CampaignsResource
      * campaign's `editor` also governs the variant content shape — a variant
      * never has an editor of its own. Without the A/B plan feature, enabling
      * the test is a `422` (`ab_test_requires_plan`).
+     *
+     * **Languages.** `locale_variants` is the whole set of translations of the
+     * campaign — `locale` (required, normalized, so `es_mx` and `ES-mx` are the
+     * same language and listing both is a `422`) plus `subject`, `preheader`
+     * and `content`, each optional and each inheriting when null. A translation
+     * carries no sender and no editor of its own: `content` follows the
+     * campaign's `editor`, exactly like a variant's. Each entry of `variants`
+     * may carry its own `locale_variants`, which win over the campaign's for
+     * the recipients assigned to that variant. Both lists are replaced whole on
+     * every write, so `[]` removes every translation of that scope.
      */
     public function create(array $payload): Campaign
     {
@@ -153,6 +163,11 @@ final readonly class CampaignsResource
      * to turn the test off (which clears them). Once the test group has gone
      * out the variants are frozen — `$campaign->abTest->locked` says so, and
      * a write touching them is a `422` (`ab_test_locked`).
+     *
+     * Translations follow the same rule per scope: `locale_variants` (and each
+     * variant's own) is only written when the key is present, and replaces the
+     * stored set for that scope when it is. A partial update that never
+     * mentions them leaves every translation untouched.
      *
      * @param  array<string, mixed>  $payload
      */
@@ -278,9 +293,13 @@ final readonly class CampaignsResource
      *                                     rendered). Unknown → `404`
      *                                     `contact_not_found`.
      * @param  int|null  $variant  An A/B variant id of this campaign.
+     * @param  string|null  $locale  Send the translation a recipient in that
+     *                               language would receive; combined with
+     *                               `$variant`, that variant's translation. No
+     *                               translation for it → the campaign base.
      * @return array<int, string> The addresses actually queued (`sent_to`).
      */
-    public function testSend(int $id, array $emails, ?string $contactEmail = null, ?int $variant = null): array
+    public function testSend(int $id, array $emails, ?string $contactEmail = null, ?int $variant = null, ?string $locale = null): array
     {
         $payload = ['emails' => array_values($emails)];
 
@@ -290,6 +309,10 @@ final readonly class CampaignsResource
 
         if ($variant !== null) {
             $payload['variant'] = $variant;
+        }
+
+        if ($locale !== null) {
+            $payload['locale'] = $locale;
         }
 
         $response = $this->http->post('campaigns/'.$id.'/test-send', ['json' => $payload]);
@@ -316,8 +339,12 @@ final readonly class CampaignsResource
      *                                     the `{{ contact.* }}` placeholders;
      *                                     omitted → neutral sample data.
      * @param  int|null  $variant  An A/B variant id of this campaign.
+     * @param  string|null  $locale  Render the translation a recipient in that
+     *                               language would receive; combined with
+     *                               `$variant`, that variant's translation. No
+     *                               translation for it → the campaign base.
      */
-    public function preview(int $id, ?string $contactEmail = null, ?int $variant = null): CampaignPreview
+    public function preview(int $id, ?string $contactEmail = null, ?int $variant = null, ?string $locale = null): CampaignPreview
     {
         $payload = [];
 
@@ -327,6 +354,10 @@ final readonly class CampaignsResource
 
         if ($variant !== null) {
             $payload['variant'] = $variant;
+        }
+
+        if ($locale !== null) {
+            $payload['locale'] = $locale;
         }
 
         // No body at all rather than an empty JSON array when nothing was given:

@@ -23,12 +23,22 @@ namespace Recado\Sdk\Dto;
  * `abTest` is the AUTHORED test (configuration + the variants as written) and
  * needs no include: the detail, create and update endpoints all return it.
  * It is null on list rows, which never carry it.
+ *
+ * `localeVariants` is the AUTHORED set of translations of the campaign base,
+ * returned — like `abTest` — by the detail, create and update endpoints and
+ * never by the listing. It is an empty array when the campaign has none AND
+ * when the payload never carried the key, because a client that reads a list
+ * row has no translations to show either way. Each A/B variant carries its own
+ * under `$abTest->variants[*]->localeVariants`: the API returns those under
+ * `locales.variants[]`, and this DTO pairs them back onto the variant by id.
  */
 final readonly class Campaign
 {
     /**
      * @param  array<int, CampaignTopLink>|null  $topLinks
      * @param  array<int, CampaignVariant>|null  $variants
+     * @param  array<int, CampaignLocaleVariant>  $localeVariants  The campaign-scope
+     *                                                             translations.
      */
     public function __construct(
         public ?int $id,
@@ -49,6 +59,7 @@ final readonly class Campaign
         public ?CampaignAbTest $abTest = null,
         public ?bool $inArchive = null,
         public ?bool $premium = null,
+        public array $localeVariants = [],
     ) {}
 
     /**
@@ -85,7 +96,7 @@ final readonly class Campaign
         }
 
         $abTest = is_array($data['ab_test'] ?? null)
-            ? CampaignAbTest::fromArray($data['ab_test'])
+            ? CampaignAbTest::fromArray(self::withVariantLocales($data))
             : null;
 
         return new self(
@@ -107,6 +118,53 @@ final readonly class Campaign
             abTest: $abTest,
             inArchive: isset($data['in_archive']) ? (bool) $data['in_archive'] : null,
             premium: isset($data['premium']) ? (bool) $data['premium'] : null,
+            localeVariants: CampaignLocaleVariant::listFrom($data['locale_variants'] ?? null),
         );
+    }
+
+    /**
+     * Fold the per-A/B-variant translations the API returns under
+     * `locales.variants[]` into the matching `ab_test.variants[]` row, so one
+     * variant object carries everything that was authored against it.
+     *
+     * Kept out of {@see CampaignAbTest} on purpose: `ab_test` and `locales` are
+     * sibling keys of the campaign payload, so the campaign is the only level
+     * that sees both. Pairing is by variant id — the only stable handle, since
+     * labels are reassigned server-side on every write.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed> The `ab_test` block, translations attached.
+     */
+    private static function withVariantLocales(array $data): array
+    {
+        /** @var array<string, mixed> $abTest */
+        $abTest = $data['ab_test'];
+
+        $locales = $data['locales'] ?? null;
+
+        if (! is_array($locales) || ! is_array($locales['variants'] ?? null) || ! is_array($abTest['variants'] ?? null)) {
+            return $abTest;
+        }
+
+        $byId = [];
+
+        foreach ($locales['variants'] as $row) {
+            if (is_array($row) && isset($row['id'])) {
+                $byId[(int) $row['id']] = $row['locale_variants'] ?? null;
+            }
+        }
+
+        $abTest['variants'] = array_map(
+            function ($variant) use ($byId) {
+                if (is_array($variant) && isset($variant['id']) && array_key_exists((int) $variant['id'], $byId)) {
+                    $variant['locale_variants'] = $byId[(int) $variant['id']];
+                }
+
+                return $variant;
+            },
+            $abTest['variants'],
+        );
+
+        return $abTest;
     }
 }

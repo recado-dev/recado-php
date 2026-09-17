@@ -147,6 +147,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   halves are optional, so the DTO now describes the variant in either shape.
 - New error codes surfaced by `ValidationException::getErrorCode()`:
   `ab_test_locked` (the test is already running) and `ab_test_requires_plan`.
+- **Campaign locale variants.** `CampaignsResource::create()` and `update()`
+  accept `locale_variants` — the whole set of translations of the campaign
+  (`locale`, required and normalized, plus the optional `subject`, `preheader`
+  and `content`, each inheriting when null) — and each entry of `variants` may
+  carry its own, which win for the recipients assigned to that variant. Each
+  list replaces the stored set for its own scope, so `[]` removes every
+  translation there and an update that never mentions the key leaves them
+  untouched. A translation carries no sender and no editor of its own.
+- `Campaign::$localeVariants` and `CampaignVariant::$localeVariants`, both
+  arrays of the new `CampaignLocaleVariant` DTO (`id`, `locale`, `subject`,
+  `preheader`, `content`) and both empty when the payload carries none. Like
+  `abTest`, they need no `include` on a read or write, and the listing never
+  carries them. The API returns the per-variant translations under
+  `locales.variants[]`; `Campaign` pairs them back onto the A/B variant by id.
+- `CampaignsResource::preview()` and `testSend()` gained an optional `locale`,
+  rendering the translation a recipient in that language would receive
+  (combined with `variant`, that variant's translation).
 
 ## [2.5.0] - 2026-09-10
 
