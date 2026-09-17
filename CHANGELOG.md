@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-09-17
+
 ### Added
 
 - **`WaitlistsResource`** — hosted pre-launch signup pages: `list()`, `cursor()`,
@@ -578,7 +580,8 @@ the same code and tests, renamed. Everything brand-carrying is breaking:
   (wrappable in a Laravel `LazyCollection`).
 - Read-only campaigns resource (`campaigns()->list()` / `get()` with stats).
 
-[Unreleased]: https://github.com/recado-dev/recado-php/compare/v2.5.0...main
+[Unreleased]: https://github.com/recado-dev/recado-php/compare/v2.6.0...main
+[2.6.0]: https://github.com/recado-dev/recado-php/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/recado-dev/recado-php/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/recado-dev/recado-php/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/recado-dev/recado-php/compare/v2.2.0...v2.3.0
