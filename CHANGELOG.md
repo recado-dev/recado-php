@@ -10,6 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Recipient `locale` on sends.** `send()->email()` and every
+  `send()->batch()` item accept an optional `locale` (`es`, `es-MX`, ...): it
+  updates the contact's locale (set on create, updated when sent, never
+  cleared when omitted) and selects the template locale variant for that
+  send — explicit `locale` > contact locale > project default > base
+  template. No more `PATCH /contacts/{email}` before a send to switch the
+  email language.
 - **Subscription categories.** `Campaign::$categoryTagId` (a public tag id)
   and the matching `category_tag_id` key on `campaigns()->create()` and
   `update()`: a category campaign only reaches contacts carrying the tag, and

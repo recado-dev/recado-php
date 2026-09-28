@@ -260,4 +260,25 @@ final class SendTest extends TestCase
         $this->assertSame('Grace', $item['first_name']);
         $this->assertSame('Hopper', $item['last_name']);
     }
+
+    public function test_email_and_batch_items_forward_the_recipient_locale(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(202, ['data' => ['id' => 'abc', 'status' => 'queued']]),
+            $this->jsonResponse(202, ['data' => ['messages' => [], 'queued' => 0, 'suppressed' => 0, 'failed' => 0]]),
+        ], $history);
+
+        $client->send()->email(['to' => 'jane@example.com', 'template' => 'welcome', 'locale' => 'es-MX']);
+        $client->send()->batch([
+            ['to' => 'ada@example.com', 'template' => 'welcome', 'locale' => 'fr'],
+            ['to' => 'grace@example.com', 'template' => 'welcome'],
+        ]);
+
+        $this->assertSame('es-MX', json_decode((string) $history[0]['request']->getBody(), true)['locale']);
+
+        $items = json_decode((string) $history[1]['request']->getBody(), true)['messages'];
+        $this->assertSame('fr', $items[0]['locale']);
+        $this->assertArrayNotHasKey('locale', $items[1]);
+    }
 }

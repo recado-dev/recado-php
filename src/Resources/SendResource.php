@@ -42,6 +42,13 @@ final readonly class SendResource
      * contact the send upserts: set on create, updated when provided, never
      * cleared when omitted.
      *
+     * Optional recipient `locale` (`xx` or `xx-XX`, e.g. `es-MX`): updated on
+     * the contact with the same policy, and it picks the template locale
+     * variant for THIS send — explicit `locale` > the contact's stored locale
+     * > the project default locale > the base template (exact tag, then the
+     * language prefix). On an inline send it only updates the contact; with
+     * `marketing` it updates the existing contact. A malformed tag is a 422.
+     *
      * MARKETING send: `marketing: true` makes this a campaign of one — the
      * recipient must be an EXISTING, `subscribed` contact (it is never
      * created), not suppressed and under the project's frequency cap, and the
@@ -63,7 +70,7 @@ final readonly class SendResource
      *                                         `bcc`, `reply_to`, `from`,
      *                                         `from_name`, `headers`, `metadata`,
      *                                         `first_name`, `last_name`, `name`,
-     *                                         `marketing`, `category`.
+     *                                         `locale`, `marketing`, `category`.
      *
      * @throws MarketingSendRefusedException
      */
@@ -93,7 +100,8 @@ final readonly class SendResource
      *
      * Each item carries the same fields as {@see email()}, including the
      * send options (`cc`, `bcc`, `reply_to`, `from`, `from_name`, `headers`,
-     * `metadata`) and the contact fields (`first_name`, `last_name`, `name`); an item whose `from` override is not on a verified
+     * `metadata`) the contact fields (`first_name`, `last_name`, `name`) and the recipient
+     * `locale` (per item; see {@see email()}); an item whose `from` override is not on a verified
      * sending domain fails per item with code `sending_domain_not_verified`.
      * Items accept `marketing`/`category` too (see {@see email()}); their
      * refusals are per item — `recipient_suppressed` counts in `suppressed`,

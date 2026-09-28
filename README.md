@@ -190,6 +190,15 @@ $client->send()->email([
     'variables' => ['first_name' => 'Jane'],
 ]);
 
+// The recipient's language: `locale` updates the contact's locale and picks
+// the template's locale variant for this send (explicit locale > contact
+// locale > project default > base template). Omit it to keep the stored one.
+$client->send()->email([
+    'to' => 'jane@example.com',
+    'template' => 'welcome',
+    'locale' => 'es-MX',
+]);
+
 // Attachments: max 10 files, 10 MB decoded per file and per send total
 // (over-total → 422 with code `attachments_too_large`); executable filename
 // extensions are rejected. Single sends only — /send/batch rejects them.
@@ -242,7 +251,7 @@ foreach ($result->messages as $item) {
 }
 ```
 
-Batch items accept `marketing`/`category` too; a refusal is per item
+Batch items accept `locale` (per recipient) and `marketing`/`category` too; a refusal is per item
 (`recipient_suppressed` counts in `suppressed`, the marketing codes come back
 as `status: failed` + `code`) and never aborts the rest of the batch.
 
