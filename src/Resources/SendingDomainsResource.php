@@ -78,10 +78,21 @@ final readonly class SendingDomainsResource
      * refused rather than created dead), `already_added` (this project already
      * carries the domain; a different project may still add it) and
      * `provider_error` (the provider rejected the creation — worth retrying).
+     *
+     * `$stream` (`transactional`, the default, or `marketing`) picks which
+     * provider of a project with SEPARATE transactional and marketing
+     * providers creates and verifies the identity. For a single-provider
+     * project both values resolve to the same provider.
      */
-    public function add(string $domain): SendingDomain
+    public function add(string $domain, ?string $stream = null): SendingDomain
     {
-        $response = $this->http->post('sending-domains', ['json' => ['domain' => $domain]]);
+        $payload = ['domain' => $domain];
+
+        if ($stream !== null) {
+            $payload['stream'] = $stream;
+        }
+
+        $response = $this->http->post('sending-domains', ['json' => $payload]);
 
         return SendingDomain::fromArray($response['data'] ?? []);
     }

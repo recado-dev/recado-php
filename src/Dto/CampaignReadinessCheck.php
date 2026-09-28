@@ -16,8 +16,8 @@ namespace Recado\Sdk\Dto;
  * `warmup`, `risky_recipients`, `locale_variants`,
  * `from_defaults_to_transactional`): an advisory check always passes and can
  * never make a campaign unsendable, it only carries information in `meta`.
- * It is null when the API did not report it; `isAdvisory()` then falls back to
- * the known advisory keys.
+ * Current servers always report it; it is null only against an older server,
+ * where `isAdvisory()` falls back to the known advisory keys.
  */
 final readonly class CampaignReadinessCheck
 {

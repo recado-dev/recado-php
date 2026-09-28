@@ -65,6 +65,7 @@ final readonly class Campaign
         public ?bool $premium = null,
         public array $localeVariants = [],
         public ?int $categoryTagId = null,
+        public ?CampaignProgress $progress = null,
     ) {}
 
     /**
@@ -125,6 +126,7 @@ final readonly class Campaign
             premium: isset($data['premium']) ? (bool) $data['premium'] : null,
             localeVariants: CampaignLocaleVariant::listFrom($data['locale_variants'] ?? null),
             categoryTagId: isset($data['category_tag_id']) ? (int) $data['category_tag_id'] : null,
+            progress: is_array($data['progress'] ?? null) ? CampaignProgress::fromArray($data['progress']) : null,
         );
     }
 
