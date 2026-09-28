@@ -18,6 +18,7 @@ enum WebhookEvent: string
     case ContactBounced = 'contact.bounced';
     case ContactComplained = 'contact.complained';
     case ContactTagged = 'contact.tagged';
+    case ContactUntagged = 'contact.untagged';
     case CampaignScheduled = 'campaign.scheduled';
     case CampaignStarted = 'campaign.started';
     case CampaignSent = 'campaign.sent';

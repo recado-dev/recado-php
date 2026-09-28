@@ -20,6 +20,10 @@ namespace Recado\Sdk\Dto;
  * `premium: true` is rejected (`premium_monetization_disabled`) while the
  * project's monetization is off.
  *
+ * `categoryTagId` is the subscription CATEGORY (a public tag id) the campaign
+ * is scoped to: only contacts carrying the tag receive it, and its one-click
+ * unsubscribe removes only that tag. Null = no category.
+ *
  * `abTest` is the AUTHORED test (configuration + the variants as written) and
  * needs no include: the detail, create and update endpoints all return it.
  * It is null on list rows, which never carry it.
@@ -60,6 +64,7 @@ final readonly class Campaign
         public ?bool $inArchive = null,
         public ?bool $premium = null,
         public array $localeVariants = [],
+        public ?int $categoryTagId = null,
     ) {}
 
     /**
@@ -119,6 +124,7 @@ final readonly class Campaign
             inArchive: isset($data['in_archive']) ? (bool) $data['in_archive'] : null,
             premium: isset($data['premium']) ? (bool) $data['premium'] : null,
             localeVariants: CampaignLocaleVariant::listFrom($data['locale_variants'] ?? null),
+            categoryTagId: isset($data['category_tag_id']) ? (int) $data['category_tag_id'] : null,
         );
     }
 

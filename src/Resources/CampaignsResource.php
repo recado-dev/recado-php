@@ -393,9 +393,12 @@ final readonly class CampaignsResource
      * @param  array<int, int>  $segments  Segment ids.
      * @param  bool|null  $premium  Restrict to paid subscribers, mirroring a
      *                              premium campaign.
+     * @param  int|null  $categoryTagId  Restrict to contacts carrying this
+     *                                   subscription category (a public tag
+     *                                   id), mirroring a category campaign.
      * @return int `recipients_total`.
      */
-    public function recipientCount(array $lists = [], array $segments = [], ?bool $premium = null): int
+    public function recipientCount(array $lists = [], array $segments = [], ?bool $premium = null, ?int $categoryTagId = null): int
     {
         $query = [];
 
@@ -409,6 +412,10 @@ final readonly class CampaignsResource
 
         if ($premium !== null) {
             $query['premium'] = $premium ? '1' : '0';
+        }
+
+        if ($categoryTagId !== null) {
+            $query['category_tag_id'] = $categoryTagId;
         }
 
         $response = $this->http->get('campaigns/recipient-count', ['query' => $query]);
