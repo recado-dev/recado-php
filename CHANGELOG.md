@@ -65,12 +65,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `SendingDomainHealth` gained `bounces`, `complaints`, `minComplaints`,
   `bounceJudged`, `complaintJudged`, `bounceOverLimit`, `complaintOverLimit`,
   `overLimit`, `overLimitWindowHours` and `isOverLimit()`;
-  `CampaignReadinessCheck` gained `required` (null until the API reports it),
-  `isAdvisory()` (falls back to the known advisory keys such as
-  `estimated_cost`) and `metaValue()`.
+  `CampaignReadinessCheck` gained `required` (reported on every check by
+  current servers; null only against an older one), `isAdvisory()` (falls
+  back to the known advisory keys such as `estimated_cost` on an older
+  server) and `metaValue()`.
+- **Marketing `/send`.** `send()->email()` and every `batch()` item document
+  `marketing` (bool) and `category` (a public tag NAME, only with
+  `marketing`). The marketing-only refusals of a single send
+  (`contact_not_found`, `recipient_not_subscribed`, `category_not_found`,
+  `recipient_not_in_category`, `frequency_cap_reached`,
+  `cloudflare_marketing_not_acknowledged`) throw the new
+  `MarketingSendRefusedException` (a `ValidationException` subclass, so
+  existing catch blocks keep working); the mapping is scoped to `/send`, so
+  the same codes elsewhere stay what they were. In a batch they are per-item
+  codes. `Message` gained `isMarketing` and `category` (a `Tag` with `id` and
+  `name`, or null).
+- **Replies.** `messages()->replies()`/`repliesCursor()` (GET
+  /messages/{uuid}/replies) and `contacts()->replies()`/`repliesCursor()` (GET
+  /contacts/{email}/replies), newest first, with the `InboundReply` DTO: text
+  and stripped text (`body()`), SPF/DKIM/DMARC verdicts, `authenticated`,
+  `autoReply`, `bounceReport`, `truncated`, `unparsable`, attachment metadata
+  and `isGenuine()` (the rule `message.replied` fires on). Never the HTML body
+  or a binary. `MessageAttachment` gained `withheld` (why a reply attachment's
+  binary was not kept).
+- **Campaign progress.** `Campaign::$progress` (`CampaignProgress`: `pending`,
+  `skipped` — null until dispatch finished) on the detail, create and update
+  responses; the listing never carries it.
+- **Sending domain stream.** `sendingDomains()->add()` takes an optional
+  `stream` (`transactional` default, or `marketing`) for projects with
+  separate transactional and marketing providers.
 - README: error-code table (`sending_provider_required`,
-  `template_resend_too_soon` with `retry_after_seconds`, ...), webhook
-  verification usage and the `{{ unsubscribe_category_url }}` placeholder.
+  `template_resend_too_soon` with `retry_after_seconds`, the marketing-send
+  codes, ...), webhook verification usage, marketing sends, replies, campaign
+  progress, the domain stream and the `{{ unsubscribe_category_url }}`
+  placeholder.
 
 ## [2.6.0] - 2026-09-17
 

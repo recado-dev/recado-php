@@ -204,6 +204,26 @@ $client->send()->email([
         ],
     ],
 ]);
+
+// Marketing send: a campaign of one. The recipient must be an EXISTING,
+// subscribed contact under the frequency cap (it is never created); the email
+// gets the unsubscribe/preferences links and goes out on the marketing stream.
+// `category` is a PUBLIC tag name: only contacts carrying it receive the send,
+// and its one-click unsubscribe removes only that tag.
+use Recado\Sdk\Exception\MarketingSendRefusedException;
+
+try {
+    $client->send()->email([
+        'to' => 'jane@example.com',
+        'template' => 'weekly-offer',
+        'marketing' => true,
+        'category' => 'Offers',
+    ]);
+} catch (MarketingSendRefusedException $e) {
+    // recipient_not_subscribed, recipient_not_in_category, frequency_cap_reached,
+    // contact_not_found, category_not_found, cloudflare_marketing_not_acknowledged
+    $e->getErrorCode();
+}
 ```
 
 ### Batch sends
@@ -221,6 +241,10 @@ foreach ($result->messages as $item) {
     // $item->index, $item->status (queued|suppressed|failed), $item->id, $item->code, $item->error
 }
 ```
+
+Batch items accept `marketing`/`category` too; a refusal is per item
+(`recipient_suppressed` counts in `suppressed`, the marketing codes come back
+as `status: failed` + `code`) and never aborts the rest of the batch.
 
 > **No attachments in batches.** `/send/batch` rejects `messages.*.attachments`
 > with a `422` — attachments are single-send only. Call `send()->email()` per
@@ -535,10 +559,27 @@ foreach ($message->events as $event) {
 // content. Suppression, quota and warm-up all re-run, so the copy can still be
 // refused (`message_not_resendable`, `recipient_suppressed`, `quota_exceeded`).
 $copy = $client->messages()->resend($message->uuid);
+$message->isMarketing;     // campaign, marketing automation or marketing /send
+$message->category?->name; // the subscription category it was scoped to
+
+// Replies (inbound replies on): TEXT only, newest first. Every stored reply is
+// listed — auto-replies and unauthenticated senders included — so check
+// isGenuine() before acting on one.
+foreach ($client->messages()->repliesCursor($message->uuid) as $reply) {
+    if ($reply->isGenuine()) {
+        $reply->body();          // stripped reply, falling back to the full text
+        $reply->contactEmail;    // null when the sender is not a contact
+    }
+}
+$client->contacts()->replies('jane@example.com', ['per_page' => 50]);
 
 // Campaigns (full lifecycle — see "Campaigns" below)
 $campaigns = $client->campaigns()->list(['status' => 'sent', 'per_page' => 50]);
 $campaign = $client->campaigns()->get(7);
+// Detail/create/update only: recipients still waiting to go out, and the ones
+// that got no message once dispatch finished (null until then).
+$campaign->progress?->pending;
+$campaign->progress?->skipped;
 // $campaign->stats is a populated CampaignStats on get() (and on
 // list(['include' => 'stats'])):
 echo $campaign->stats->openRate ?? 0; // rates are null when undefined
@@ -955,6 +996,9 @@ opening the dashboard.
 
 ```php
 $domain = $client->sendingDomains()->add('mail.example.com');
+// With separate transactional and marketing providers, pick the stream whose
+// provider creates and verifies the identity (default `transactional`):
+$client->sendingDomains()->add('news.example.com', stream: 'marketing');
 
 foreach ($domain->records as $record) {
     // Shaped for a DNS panel: `host` relative to the zone, `fqdn` alongside,
@@ -1269,6 +1313,7 @@ Every non-2xx response is mapped to a typed exception. All exceptions extend
 | `RecadoConfigurationException` | — (local) | Missing/empty/placeholder base URL (or the decommissioned `mailer.mosaiqo.com` v1.x host) or empty token; thrown at client construction before any request. |
 | `UnsupportedFeatureException` | — (local) | The send relies on something the `/send` API has no field for, or that the SDK config disables (e.g. attachments with `recado-sdk.mail.attachments = 'fail'`). |
 | `AttachmentsTooLargeException` | — (local) | The decoded attachments of one send exceed the 10 MB total limit; thrown before any upload. `getErrorCode()` is `attachments_too_large`, the same code the server returns for the 422. |
+| `MarketingSendRefusedException` | 422 | Subclass of `ValidationException` thrown by `send()->email()` for the marketing-only refusals (`contact_not_found`, `recipient_not_subscribed`, `category_not_found`, `recipient_not_in_category`, `frequency_cap_reached`, `cloudflare_marketing_not_acknowledged`). |
 | `WebhookVerificationException` | — (local) | An incoming webhook failed `WebhookPayload::constructEvent()` / `WebhookSignature::verify()`: `invalid_webhook_signature` or `invalid_webhook_payload`. |
 | `RecadoException`         | any other   | Base class; also the catch-all for unexpected non-2xx statuses. |
 
@@ -1283,6 +1328,12 @@ or its subclasses):
 | `sending_domain_not_verified` | The from address is not on a verified sending domain. |
 | `template_resend_too_soon` | The template's resend guard refused this contact; the body carries `retry_after_seconds` (`TemplateResendTooSoonException::retryAfterSeconds()`). |
 | `template_not_found` | No template with that slug in the project. |
+| `contact_not_found` | Marketing `/send` only (`MarketingSendRefusedException`): the recipient is not a contact — a marketing send never creates one. |
+| `recipient_not_subscribed` | Marketing `/send` only: the contact is unconfirmed or unsubscribed. |
+| `category_not_found` | Marketing `/send` only: no PUBLIC tag with that `category` name. |
+| `recipient_not_in_category` | Marketing `/send` only: the contact does not carry the category tag. |
+| `frequency_cap_reached` | Marketing `/send` only: the contact already got the project's weekly maximum of marketing messages. |
+| `cloudflare_marketing_not_acknowledged` | Marketing `/send` only: the marketing stream is Cloudflare Email Service and its marketing terms were not acknowledged in the dashboard. |
 
 ```php
 use Recado\Sdk\Exception\TemplateResendTooSoonException;
