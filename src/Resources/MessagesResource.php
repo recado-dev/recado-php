@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Recado\Sdk\Resources;
 
+use Recado\Sdk\Dto\InboundReply;
 use Recado\Sdk\Dto\Message;
 use Recado\Sdk\Dto\Paginated;
 use Recado\Sdk\Http\HttpClient;
 use Recado\Sdk\Resources\Concerns\PaginatesResults;
 
 /**
- * The Messages resource: read the sending log, and resend one message.
+ * The Messages resource: read the sending log, the replies a message got,
+ * and resend one message.
  */
 final readonly class MessagesResource
 {
@@ -86,5 +88,37 @@ final readonly class MessagesResource
         $response = $this->http->post('messages/'.rawurlencode($uuid).'/resend');
 
         return Message::fromArray($response['data'] ?? []);
+    }
+
+    /**
+     * List the stored replies to one message (GET /messages/{uuid}/replies), newest first.
+     *
+     * Text only — the HTML body and attachment binaries never leave the
+     * platform. Unlike the `message.replied` webhook this lists EVERY stored
+     * reply, auto-replies and unauthenticated senders included, so check
+     * `InboundReply::isGenuine()` before acting on one. An unknown message uuid is a
+     * `NotFoundException` with code `message_not_found`.
+     *
+     * @param  array<string, mixed>  $query  per_page (1-100, default 25), page.
+     * @return Paginated<InboundReply>
+     */
+    public function replies(string $uuid, array $query = []): Paginated
+    {
+        $response = $this->http->get('messages/'.rawurlencode($uuid).'/replies', ['query' => $query]);
+
+        return Paginated::fromArray($response, InboundReply::fromArray(...));
+    }
+
+    /**
+     * Lazily iterate every stored reply to one message across all pages.
+     *
+     * @param  array<string, mixed>  $query  per_page (page is managed automatically).
+     * @return \Generator<int, InboundReply>
+     */
+    public function repliesCursor(string $uuid, array $query = []): \Generator
+    {
+        return $this->paginate(
+            fn (int $page): Paginated => $this->replies($uuid, array_merge($query, ['page' => $page])),
+        );
     }
 }

@@ -8,6 +8,9 @@ namespace Recado\Sdk\Dto;
  * The metadata of one attachment a message was sent with. The binary itself
  * is never exposed (it is deleted once the message is sent); `size` is the
  * decoded size in bytes.
+ *
+ * On an inbound reply `withheld` says why the binary was not kept (an
+ * executable name, over a size cap, a virus verdict), null when it was.
  */
 final readonly class MessageAttachment
 {
@@ -15,6 +18,7 @@ final readonly class MessageAttachment
         public ?string $filename,
         public ?string $contentType,
         public ?int $size,
+        public ?string $withheld = null,
     ) {}
 
     /**
@@ -26,6 +30,7 @@ final readonly class MessageAttachment
             filename: isset($data['filename']) ? (string) $data['filename'] : null,
             contentType: isset($data['content_type']) ? (string) $data['content_type'] : null,
             size: isset($data['size']) ? (int) $data['size'] : null,
+            withheld: isset($data['withheld']) ? (string) $data['withheld'] : null,
         );
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Recado\Sdk\Resources;
 
 use Recado\Sdk\Dto\Contact;
+use Recado\Sdk\Dto\InboundReply;
 use Recado\Sdk\Dto\Paginated;
 use Recado\Sdk\Http\HttpClient;
 use Recado\Sdk\Resources\Concerns\PaginatesResults;
@@ -176,5 +177,37 @@ final readonly class ContactsResource
         $response = $this->http->delete('contacts/'.rawurlencode($email).'/automation-runs', $options);
 
         return $response['data'] ?? [];
+    }
+
+    /**
+     * List the stored replies from one contact (GET /contacts/{email}/replies), newest first.
+     *
+     * Text only — the HTML body and attachment binaries never leave the
+     * platform. Unlike the `message.replied` webhook this lists EVERY stored
+     * reply, auto-replies and unauthenticated senders included, so check
+     * `InboundReply::isGenuine()` before acting on one. An unknown email is a
+     * `NotFoundException` with code `contact_not_found`.
+     *
+     * @param  array<string, mixed>  $query  per_page (1-100, default 25), page.
+     * @return Paginated<InboundReply>
+     */
+    public function replies(string $email, array $query = []): Paginated
+    {
+        $response = $this->http->get('contacts/'.rawurlencode($email).'/replies', ['query' => $query]);
+
+        return Paginated::fromArray($response, InboundReply::fromArray(...));
+    }
+
+    /**
+     * Lazily iterate every stored reply from one contact across all pages.
+     *
+     * @param  array<string, mixed>  $query  per_page (page is managed automatically).
+     * @return \Generator<int, InboundReply>
+     */
+    public function repliesCursor(string $email, array $query = []): \Generator
+    {
+        return $this->paginate(
+            fn (int $page): Paginated => $this->replies($email, array_merge($query, ['page' => $page])),
+        );
     }
 }
