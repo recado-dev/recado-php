@@ -15,6 +15,11 @@ namespace Recado\Sdk\Dto;
  * The one place the verdict changes behaviour is CAMPAIGN audiences, where
  * `invalid` contacts are excluded like suppressed ones (`risky` never is).
  * A contact that predates verification reports `unknown`, never null.
+ *
+ * `pendingLists` (full profile only) are the lists that require confirmation
+ * which the contact asked to join and has not confirmed yet — NOT memberships
+ * (`status` `pending`, with `requestedAt`/`confirmationSentAt`/`expiresAt`).
+ * `lists` rows are memberships (`status` `confirmed`, `confirmedAt`).
  */
 final readonly class Contact
 {
@@ -22,6 +27,7 @@ final readonly class Contact
      * @param  array<string, mixed>  $attributes
      * @param  array<int, Tag>  $tags
      * @param  array<int, ContactList>  $lists
+     * @param  array<int, ContactList>  $pendingLists
      * @param  array<int, array{reason: string, suggestion?: string}>  $verificationReasons  `suggestion` is only present on `domain_typo`.
      */
     public function __construct(
@@ -41,6 +47,7 @@ final readonly class Contact
         public ?string $verificationStatus = null,
         public array $verificationReasons = [],
         public ?string $verifiedAt = null,
+        public array $pendingLists = [],
     ) {}
 
     /**
@@ -59,6 +66,13 @@ final readonly class Contact
         foreach ($data['lists'] ?? [] as $list) {
             if (is_array($list)) {
                 $lists[] = ContactList::fromArray($list);
+            }
+        }
+
+        $pendingLists = [];
+        foreach ($data['pending_lists'] ?? [] as $list) {
+            if (is_array($list)) {
+                $pendingLists[] = ContactList::fromArray($list);
             }
         }
 
@@ -88,6 +102,7 @@ final readonly class Contact
                 : null,
             verificationReasons: $reasons,
             verifiedAt: isset($data['verified_at']) ? (string) $data['verified_at'] : null,
+            pendingLists: $pendingLists,
         );
     }
 

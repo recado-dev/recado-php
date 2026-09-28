@@ -115,6 +115,15 @@ final readonly class SendResource
      *                                         `name`, `locale`, `lists`,
      *                                         `tags`.
      * @return array<string, mixed> The `data` block: id, event, email.
+     *                              When `lists` was sent the block
+     *                              also carries `lists`: one
+     *                              `{id, status, confirmation_email}`
+     *                              per requested list, in order —
+     *                              `status` confirmed|pending|suppressed,
+     *                              `confirmation_email`
+     *                              sent|throttled|not_sent|null (only
+     *                              set for `pending`, i.e. a list
+     *                              with per-list double opt-in).
      */
     public function track(string $event, string $email, array $data = [], array $contact = []): array
     {
@@ -141,6 +150,15 @@ final readonly class SendResource
      *                                         last_name, locale, attributes,
      *                                         lists, tags.
      * @return array<string, mixed> The `data` block: id, email, status.
+     *                              When `lists` was sent the block
+     *                              also carries `lists`: one
+     *                              `{id, status, confirmation_email}`
+     *                              per requested list, in order —
+     *                              `status` confirmed|pending|suppressed,
+     *                              `confirmation_email`
+     *                              sent|throttled|not_sent|null (only
+     *                              set for `pending`, i.e. a list
+     *                              with per-list double opt-in).
      */
     public function subscribe(array $payload): array
     {

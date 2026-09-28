@@ -48,13 +48,31 @@ final readonly class ListsResource
 
     /**
      * Create a contact list (POST /lists).
+     *
+     * With `requiresConfirmation: true` (per-list double opt-in) a contact who
+     * joins through `/contacts/subscribe` or `/track` is emailed a confirmation
+     * link instead of being attached; `confirmationTemplate` is the slug of the
+     * transactional template that email uses (omit for the built-in one).
+     * Operator paths (`attachContact()`, imports) always attach directly.
      */
-    public function create(string $name, ?string $description = null): ContactList
-    {
+    public function create(
+        string $name,
+        ?string $description = null,
+        ?bool $requiresConfirmation = null,
+        ?string $confirmationTemplate = null,
+    ): ContactList {
         $payload = ['name' => $name];
 
         if ($description !== null) {
             $payload['description'] = $description;
+        }
+
+        if ($requiresConfirmation !== null) {
+            $payload['requires_confirmation'] = $requiresConfirmation;
+        }
+
+        if ($confirmationTemplate !== null) {
+            $payload['confirmation_template'] = $confirmationTemplate;
         }
 
         $response = $this->http->post('lists', ['json' => $payload]);
@@ -68,7 +86,10 @@ final readonly class ListsResource
      * Membership is untouched. `name` stays unique per project (the list
      * itself excluded); a list outside the project is `404` + `list_not_found`.
      *
-     * @param  array<string, mixed>  $payload  Any of `name`, `description`.
+     * @param  array<string, mixed>  $payload  Any of `name`, `description`,
+     *                                         `requires_confirmation` (bool),
+     *                                         `confirmation_template` (template
+     *                                         slug, null = the built-in email).
      */
     public function update(int $listId, array $payload): ContactList
     {

@@ -24,6 +24,15 @@ final readonly class ContactsResource
      *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed> The `data` block: id, email, status.
+     *                              When `lists` was sent the block
+     *                              also carries `lists`: one
+     *                              `{id, status, confirmation_email}`
+     *                              per requested list, in order —
+     *                              `status` confirmed|pending|suppressed,
+     *                              `confirmation_email`
+     *                              sent|throttled|not_sent|null (only
+     *                              set for `pending`, i.e. a list
+     *                              with per-list double opt-in).
      */
     public function subscribe(array $payload): array
     {
