@@ -11,6 +11,10 @@ namespace Recado\Sdk\Dto;
  * `provider` names the BYO provider (and stream role) that delivered it; it is
  * null for platform delivery, sandbox interception, a message not sent yet or
  * one sent before this was recorded. `attachments` is metadata only.
+ *
+ * `isMarketing` says whether the message is marketing mail (a campaign, a
+ * marketing automation or a `/send` with `marketing: true`); `category` is the
+ * subscription category (public tag, `id` + `name`) it was scoped to, or null.
  */
 final readonly class Message
 {
@@ -40,6 +44,8 @@ final readonly class Message
         public ?array $metadata = null,
         public ?MessageProvider $provider = null,
         public array $attachments = [],
+        public ?bool $isMarketing = null,
+        public ?Tag $category = null,
     ) {}
 
     /**
@@ -80,6 +86,8 @@ final readonly class Message
             metadata: isset($data['metadata']) && is_array($data['metadata']) ? $data['metadata'] : null,
             provider: is_array($data['provider'] ?? null) ? MessageProvider::fromArray($data['provider']) : null,
             attachments: $attachments,
+            isMarketing: isset($data['is_marketing']) ? (bool) $data['is_marketing'] : null,
+            category: is_array($data['category'] ?? null) ? Tag::fromArray($data['category']) : null,
         );
     }
 }

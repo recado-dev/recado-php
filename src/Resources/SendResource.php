@@ -6,6 +6,8 @@ namespace Recado\Sdk\Resources;
 
 use Recado\Sdk\Dto\BatchResult;
 use Recado\Sdk\Dto\SentMessage;
+use Recado\Sdk\Exception\MarketingSendRefusedException;
+use Recado\Sdk\Exception\ValidationException;
 use Recado\Sdk\Http\HttpClient;
 
 /**
@@ -40,12 +42,30 @@ final readonly class SendResource
      * contact the send upserts: set on create, updated when provided, never
      * cleared when omitted.
      *
+     * MARKETING send: `marketing: true` makes this a campaign of one — the
+     * recipient must be an EXISTING, `subscribed` contact (it is never
+     * created), not suppressed and under the project's frequency cap, and the
+     * email carries the unsubscribe/preferences links and List-Unsubscribe
+     * header and goes out on the marketing stream. `category` (a PUBLIC tag
+     * NAME, case-insensitive; only with `marketing`) additionally requires the
+     * contact to carry that tag, and its one-click unsubscribe removes only
+     * that tag. The marketing-only refusals throw
+     * `MarketingSendRefusedException` (`contact_not_found`,
+     * `recipient_not_subscribed`, `category_not_found`,
+     * `recipient_not_in_category`, `frequency_cap_reached`,
+     * `cloudflare_marketing_not_acknowledged`); `recipient_suppressed`,
+     * `sending_provider_required` and `sending_domain_not_verified` stay plain
+     * `ValidationException`s. Without `marketing` nothing changes.
+     *
      * @param  array<string, mixed>  $payload  `to` plus either `template` or
      *                                         `subject`+`body`, optional `text`,
      *                                         `variables`, `attachments`, `cc`,
      *                                         `bcc`, `reply_to`, `from`,
      *                                         `from_name`, `headers`, `metadata`,
-     *                                         `first_name`, `last_name`, `name`.
+     *                                         `first_name`, `last_name`, `name`,
+     *                                         `marketing`, `category`.
+     *
+     * @throws MarketingSendRefusedException
      */
     public function email(array $payload, ?string $idempotencyKey = null): SentMessage
     {
@@ -55,7 +75,15 @@ final readonly class SendResource
             $options['idempotency_key'] = $idempotencyKey;
         }
 
-        $response = $this->http->post('send', $options);
+        try {
+            $response = $this->http->post('send', $options);
+        } catch (ValidationException $e) {
+            if ($e instanceof MarketingSendRefusedException || ! MarketingSendRefusedException::handles($e->getErrorCode())) {
+                throw $e;
+            }
+
+            throw MarketingSendRefusedException::from($e);
+        }
 
         return SentMessage::fromArray($response['data'] ?? []);
     }
@@ -67,6 +95,9 @@ final readonly class SendResource
      * send options (`cc`, `bcc`, `reply_to`, `from`, `from_name`, `headers`,
      * `metadata`) and the contact fields (`first_name`, `last_name`, `name`); an item whose `from` override is not on a verified
      * sending domain fails per item with code `sending_domain_not_verified`.
+     * Items accept `marketing`/`category` too (see {@see email()}); their
+     * refusals are per item — `recipient_suppressed` counts in `suppressed`,
+     * the marketing codes come back as `status: failed` + `code`.
      * The batch endpoint rejects `attachments` on any message (422) — the
      * field is single-send only; use {@see email()} per recipient instead
      * (the Laravel mail transport does that fan-out automatically).
