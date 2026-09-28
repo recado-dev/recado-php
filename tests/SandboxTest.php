@@ -139,4 +139,50 @@ final class SandboxTest extends TestCase
             $this->assertNull($e->getErrorCode());
         }
     }
+
+    public function test_simulate_reply_posts_the_options_and_maps_the_result(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(202, [
+                'data' => [
+                    'message' => 'msg-uuid',
+                    'reply' => [
+                        'uuid' => 'reply-uuid',
+                        'from_email' => 'ada@example.com',
+                        'contact' => 'contact-uuid',
+                        'authenticated' => false,
+                        'auto_reply' => false,
+                        'bounce_report' => false,
+                        'fired' => false,
+                    ],
+                ],
+            ]),
+        ], $history);
+
+        $result = $client->sandbox()->simulateReply('msg-uuid', ['text' => 'Keep my plan', 'dmarc' => 'FAIL']);
+
+        $this->assertSame('msg-uuid', $result->message);
+        $this->assertSame('reply-uuid', $result->uuid);
+        $this->assertSame('contact-uuid', $result->contact);
+        $this->assertFalse($result->authenticated);
+        $this->assertFalse($result->fired);
+
+        $request = $history[0]['request'];
+        $this->assertSame('/api/v1/sandbox/messages/msg-uuid/reply', $request->getUri()->getPath());
+        $this->assertSame(['text' => 'Keep my plan', 'dmarc' => 'FAIL'], json_decode((string) $request->getBody(), true));
+    }
+
+    public function test_simulate_reply_without_options_sends_an_empty_object(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(202, ['data' => ['message' => 'msg-uuid', 'reply' => ['fired' => true, 'authenticated' => true]]]),
+        ], $history);
+
+        $result = $client->sandbox()->simulateReply('msg-uuid');
+
+        $this->assertTrue($result->fired);
+        $this->assertSame('{}', (string) $history[0]['request']->getBody());
+    }
 }

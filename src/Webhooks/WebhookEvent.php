@@ -25,6 +25,7 @@ enum WebhookEvent: string
     case CampaignFailed = 'campaign.failed';
     case CampaignCancelled = 'campaign.cancelled';
     case MessageDelivered = 'message.delivered';
+    case MessageReplied = 'message.replied';
     case ReaderSubscribed = 'reader.subscribed';
     case ReaderSubscriptionCanceled = 'reader.subscription_canceled';
     case IdentityBreakerTripped = 'identity.breaker_tripped';

@@ -21,6 +21,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unsubscribe link, bulk/batch removes). Same `data` shape as
   `contact.tagged`; removing a PUBLIC tag is how a category opt-out reaches the
   client app.
+- **`WebhookEvent::MessageReplied`** (`message.replied`) — a contact replied to
+  one of the project's emails (inbound replies on). The `data` carries the
+  reply (`inbound`: uuid, sender, subject, full and stripped text, attachment
+  metadata, SPF/DKIM/DMARC verdicts), the replied-to `message` (uuid, source,
+  template slug, campaign/automation ids, the `metadata` you attached on
+  `/send`, `sent_at`) and the `contact` (uuid, email; null when the sender is
+  not a contact). Auto-replies, bounce reports and unauthenticated mail never
+  fire it.
+- **`SandboxResource::simulateReply()`** + the `SimulatedReply` DTO — simulate
+  a contact replying to a sandbox email (POST /sandbox/messages/{uuid}/reply)
+  through the real inbound pipeline, with caller-chosen verdicts.
 
 ## [2.6.0] - 2026-09-17
 

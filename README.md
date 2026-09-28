@@ -1271,6 +1271,21 @@ SandboxResource::EVENT_CLICK;       // 'click' — pass linkIndex or url
 SandboxResource::EVENT_READ;        // 'read'
 ```
 
+Replies can be simulated too — the way to test a `message.replied` webhook
+handler or a `contact_replied` automation without any inbound DNS or AWS setup.
+The reply runs through the real inbound pipeline; verdicts default to
+authenticated:
+
+```php
+$reply = $client->sandbox()->simulateReply($message->uuid, [
+    'text' => 'Please keep my subscription.',
+    // 'dmarc' => 'FAIL',      // unauthenticated: stored, fires nothing
+    // 'auto_reply' => true,   // auto-reply: stored, fires nothing
+]);
+
+$reply->fired; // true → message.replied fired and contact_replied automations started
+```
+
 Notes and safety properties:
 
 - **Webhooks fire for real, flagged `"sandbox": true`.** Outbound webhooks
