@@ -1224,6 +1224,16 @@ if ($payload->is(WebhookEvent::MessageReplied)) {
 `WebhookSignature::isValid()` / `verify()` check a signature on their own
 (constant-time), for when you parse the body yourself.
 
+Deliveries are `POST`s from Recado's servers with the stable User-Agent
+`Recado-Webhooks/1.0 (+https://recado.dev)`, a 10-second timeout, and
+redirects are never followed. If your site sits behind bot protection
+(Cloudflare, another WAF), deliveries may be answered with a `403` before they
+reach this code: add a rule that skips bot protection for your webhook path
+when the User-Agent starts with `Recado-Webhooks/`, and keep the signature
+check above as the real authentication. Do not allow-list by IP — the servers'
+addresses can change. The API reference (`docs/api.md`, "Outbound webhooks")
+has a Cloudflare rule example.
+
 ### Automatic pagination
 
 Paginated resources also expose a `cursor()` generator that lazily walks every

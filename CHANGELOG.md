@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Docs: webhook delivery identity.** The "Verifying webhooks" section of the
+  README now documents the stable `Recado-Webhooks/1.0` User-Agent deliveries
+  carry, the timeout/no-redirect behaviour and how to let deliveries through
+  bot protection (Cloudflare & co.). No code change.
+
 - **Recipient `locale` on sends.** `send()->email()` and every
   `send()->batch()` item accept an optional `locale` (`es`, `es-MX`, ...): it
   updates the contact's locale (set on create, updated when sent, never
