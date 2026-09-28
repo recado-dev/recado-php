@@ -815,6 +815,14 @@ $campaign->variants[0]->isWinner;
 $client->campaigns()->update(31, ['in_archive' => false, 'premium' => true]);
 $campaign->inArchive;
 $campaign->premium;
+
+// Subscription category: scope the campaign to a PUBLIC tag (one shown in the
+// preference center). Only contacts carrying the tag receive it, and its
+// one-click unsubscribe removes only that tag — the contact stays subscribed.
+// A private tag or another project's tag is a validation error; null clears it.
+$client->campaigns()->update(31, ['category_tag_id' => 12]);
+$campaign->categoryTagId;
+$client->campaigns()->recipientCount(lists: [3], categoryTagId: 12);
 ```
 
 Failures keep the API's machine codes on the typed exceptions, untranslated —

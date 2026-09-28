@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Subscription categories.** `Campaign::$categoryTagId` (a public tag id)
+  and the matching `category_tag_id` key on `campaigns()->create()` and
+  `update()`: a category campaign only reaches contacts carrying the tag, and
+  its one-click unsubscribe removes only that tag (the contact stays
+  subscribed). A private or foreign tag is a validation error.
+  `campaigns()->recipientCount()` gained a `categoryTagId` argument.
+- **`WebhookEvent::ContactUntagged`** (`contact.untagged`) — fired for every
+  real detach of a tag (preference center, contact tags API, category
+  unsubscribe link, bulk/batch removes). Same `data` shape as
+  `contact.tagged`; removing a PUBLIC tag is how a category opt-out reaches the
+  client app.
+
 ## [2.6.0] - 2026-09-17
 
 ### Added
