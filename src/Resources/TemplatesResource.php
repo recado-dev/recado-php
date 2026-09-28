@@ -49,7 +49,9 @@ final readonly class TemplatesResource
      * Create a template (POST /templates).
      *
      * @param  array<string, mixed>  $payload  name, slug, subject, body_html,
-     *                                         optional body_text.
+     *                                         optional body_text and
+     *                                         min_resend_interval_minutes
+     *                                         (1..1440, null = no resend guard).
      */
     public function create(array $payload): Template
     {
@@ -72,7 +74,9 @@ final readonly class TemplatesResource
      * Partially update a template (PATCH /templates/{slug}).
      *
      * @param  array<string, mixed>  $payload  Any of name, slug, subject,
-     *                                         body_html, body_text.
+     *                                         body_html, body_text,
+     *                                         min_resend_interval_minutes
+     *                                         (null turns the guard off).
      */
     public function update(string $slug, array $payload): Template
     {

@@ -12,6 +12,7 @@ use Recado\Sdk\Exception\AuthenticationException;
 use Recado\Sdk\Exception\NotFoundException;
 use Recado\Sdk\Exception\RateLimitException;
 use Recado\Sdk\Exception\RecadoException;
+use Recado\Sdk\Exception\TemplateResendTooSoonException;
 use Recado\Sdk\Exception\ValidationException;
 
 /**
@@ -193,13 +194,21 @@ final class HttpClient
         return match ($status) {
             401 => new AuthenticationException($message, $code, $status, $body),
             404 => new NotFoundException($message, $code, $status, $body),
-            422 => new ValidationException(
-                $message,
-                $this->normalizeErrors($body['errors'] ?? []),
-                $code,
-                $status,
-                $body,
-            ),
+            422 => $code === TemplateResendTooSoonException::CODE
+                ? new TemplateResendTooSoonException(
+                    $message,
+                    $this->normalizeErrors($body['errors'] ?? []),
+                    $code,
+                    $status,
+                    $body,
+                )
+                : new ValidationException(
+                    $message,
+                    $this->normalizeErrors($body['errors'] ?? []),
+                    $code,
+                    $status,
+                    $body,
+                ),
             429 => new RateLimitException(
                 $message,
                 $this->parseRetryAfter($response),

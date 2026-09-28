@@ -7,6 +7,12 @@ namespace Recado\Sdk\Dto;
 /**
  * A template. The compact listing form omits `bodyHtml`/`bodyText`/`variants`;
  * the full form (GET/POST/PATCH single) populates them.
+ *
+ * `minResendIntervalMinutes` is the per-template resend guard (1..1440, null =
+ * off): a send of this template to a contact that already received it within
+ * the window is refused with `template_resend_too_soon` (see
+ * `TemplateResendTooSoonException`). Write it through `templates()->create()` /
+ * `update()` with the `min_resend_interval_minutes` key.
  */
 final readonly class Template
 {
@@ -22,6 +28,8 @@ final readonly class Template
         public array $variants,
         public ?string $createdAt,
         public ?string $updatedAt,
+        public ?int $minResendIntervalMinutes = null,
+        public ?string $editor = null,
     ) {}
 
     /**
@@ -45,6 +53,10 @@ final readonly class Template
             variants: $variants,
             createdAt: isset($data['created_at']) ? (string) $data['created_at'] : null,
             updatedAt: isset($data['updated_at']) ? (string) $data['updated_at'] : null,
+            minResendIntervalMinutes: isset($data['min_resend_interval_minutes'])
+                ? (int) $data['min_resend_interval_minutes']
+                : null,
+            editor: isset($data['editor']) ? (string) $data['editor'] : null,
         );
     }
 }
