@@ -32,6 +32,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`SandboxResource::simulateReply()`** + the `SimulatedReply` DTO — simulate
   a contact replying to a sandbox email (POST /sandbox/messages/{uuid}/reply)
   through the real inbound pipeline, with caller-chosen verdicts.
+- **Webhook verification.** `Webhooks\WebhookSignature` (`compute()`,
+  constant-time `isValid()`, `verify()`) checks the `X-Recado-Signature`
+  header — the hex HMAC-SHA256 of the exact raw body with the endpoint's
+  signing secret. `Webhooks\WebhookPayload::constructEvent()` verifies and
+  parses the envelope (`event`, `timestamp`, `projectUuid`, `sandbox`, raw
+  `data` for every event, `type()`/`is()`), and `messageReplied()` returns the
+  typed `Webhooks\MessageReplied` view of a `message.replied` delivery (reply
+  text/stripped text, attachment metadata, SPF/DKIM/DMARC verdicts, the
+  replied-to message with its `/send` `metadata`, the contact). Failures throw
+  the local `WebhookVerificationException` (`invalid_webhook_signature` /
+  `invalid_webhook_payload`).
+- **Per-template resend guard.** `Template::$minResendIntervalMinutes` (and
+  `Template::$editor`); `templates()->create()`/`update()` document the
+  `min_resend_interval_minutes` key (1..1440, null = off). A send refused with
+  `422` `template_resend_too_soon` now throws `TemplateResendTooSoonException`
+  (a `ValidationException` subclass) with `retryAfterSeconds()`; a batch item
+  refused the same way carries `BatchItem::$retryAfterSeconds`.
+- **Per-list double opt-in.** `WebhookEvent::ContactListConfirmed`
+  (`contact.list_confirmed`), which completes the SDK catalog against the
+  platform's (a monorepo test now guards the parity). `ContactList` gained
+  `requiresConfirmation`, `confirmationTemplate` (template slug) and
+  `pendingCount`, plus the membership fields `status`, `confirmedAt`,
+  `requestedAt`, `confirmationSentAt`, `expiresAt` and `isPending()`;
+  `lists()->create()` takes `requiresConfirmation`/`confirmationTemplate`
+  (named, optional — the old call sends the same payload as before) and
+  `update()` documents both keys. `Contact::$pendingLists` holds the join
+  requests not confirmed yet. `subscribe()`/`track()` document the `lists`
+  outcome block (`confirmed`/`pending`/`suppressed` + `confirmation_email`).
+- **DTO parity.** `Message::$provider` (`MessageProvider`: `type`, `stream`)
+  and `Message::$attachments` (`MessageAttachment` metadata);
+  `SendingDomainHealth` gained `bounces`, `complaints`, `minComplaints`,
+  `bounceJudged`, `complaintJudged`, `bounceOverLimit`, `complaintOverLimit`,
+  `overLimit`, `overLimitWindowHours` and `isOverLimit()`;
+  `CampaignReadinessCheck` gained `required` (null until the API reports it),
+  `isAdvisory()` (falls back to the known advisory keys such as
+  `estimated_cost`) and `metaValue()`.
+- README: error-code table (`sending_provider_required`,
+  `template_resend_too_soon` with `retry_after_seconds`, ...), webhook
+  verification usage and the `{{ unsubscribe_category_url }}` placeholder.
 
 ## [2.6.0] - 2026-09-17
 

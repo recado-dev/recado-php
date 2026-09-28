@@ -27,6 +27,7 @@ Laravel integration.
 - Automatic, idempotency-safe retries with exponential backoff.
 - Lazy pagination via `cursor()` generators (no page bookkeeping).
 - Per-send idempotency keys to make retries duplicate-free.
+- Webhook signature verification and a typed `message.replied` payload.
 - Optional Laravel integration (auto-discovered): a `recado` mail transport, a
   `recado` notification channel and a `Recado` facade.
 - Zero required dependencies beyond Guzzle; the core works in plain PHP without
@@ -455,6 +456,17 @@ $client->lists()->detachContact($list->id, 'jane@example.com');
 $client->lists()->update($list->id, ['name' => 'Weekly digest']); // membership untouched
 $client->lists()->delete($list->id);                              // contacts survive
 
+// Per-list double opt-in: people joining through subscribe()/track() with
+// `lists` get a confirmation email and become members only after clicking it.
+// Operator paths (attachContact(), imports) still attach directly.
+$beta = $client->lists()->create('Beta', requiresConfirmation: true, confirmationTemplate: 'confirm-beta');
+$beta->pendingCount;                       // requests still waiting for a click
+$contact = $client->contacts()->get('jane@example.com');
+$contact->lists[0]->confirmedAt;           // set when the membership came from a click
+$contact->pendingLists[0]->expiresAt;      // NOT a member yet
+$joined = $client->contacts()->subscribe(['email' => 'jane@example.com', 'lists' => [$beta->id]]);
+$joined['lists'][0]['status'];             // confirmed | pending | suppressed
+
 // Tags (flat array) — full CRUD, including the preference-center fields
 $tags = $client->tags()->list();
 // create() is create-or-FIND: an existing name (matched case-insensitively)
@@ -486,7 +498,12 @@ $template = $client->templates()->create([
     'slug' => 'welcome',
     'subject' => 'Welcome!',
     'body_html' => '<p>Hi</p>',
+    // Resend guard: refuse sending this template to the same contact again
+    // within N minutes (1..1440, null = off). A refused send throws
+    // TemplateResendTooSoonException (see Error handling).
+    'min_resend_interval_minutes' => 10,
 ]);
+$template->minResendIntervalMinutes; // 10
 $client->templates()->putVariant('welcome', 'es', [
     'subject' => '¡Bienvenido!',
     'body_html' => '<p>Hola</p>',
@@ -819,6 +836,9 @@ $campaign->premium;
 // Subscription category: scope the campaign to a PUBLIC tag (one shown in the
 // preference center). Only contacts carrying the tag receive it, and its
 // one-click unsubscribe removes only that tag — the contact stays subscribed.
+// A category send gets the `{{ unsubscribe_category_url }}` placeholder (the
+// "Unsubscribe from <category>" link; the footer adds it when your content
+// does not), while `{{ unsubscribe_url }}` keeps working for a full opt-out.
 // A private tag or another project's tag is a validation error; null clears it.
 $client->campaigns()->update(31, ['category_tag_id' => 12]);
 $campaign->categoryTagId;
@@ -1111,6 +1131,46 @@ try {
 `$client->project()->get()->isSandbox()` answers the same question up front,
 without provoking a refusal.
 
+### Verifying webhooks
+
+Every delivery to one of your webhook endpoints is signed: `X-Recado-Signature`
+is the hex HMAC-SHA256 of the **exact raw request body**, keyed with the
+endpoint's signing secret (the `whsec_…` value `webhooks()->create()` returns
+once). Verify against the raw bytes you received — never a re-encoded array.
+
+```php
+use Recado\Sdk\Exception\WebhookVerificationException;
+use Recado\Sdk\Webhooks\WebhookEvent;
+use Recado\Sdk\Webhooks\WebhookPayload;
+
+try {
+    $payload = WebhookPayload::constructEvent(
+        $request->getContent(),                      // the RAW body
+        $request->header('X-Recado-Signature'),
+        config('services.recado.webhook_secret'),
+    );
+} catch (WebhookVerificationException $e) {
+    abort(400); // bad signature or not a Recado envelope — do not act on it
+}
+
+// X-Recado-Delivery is stable across retries: deduplicate on it.
+if ($payload->sandbox) {
+    // a test event from the project's sandbox twin
+}
+
+if ($payload->is(WebhookEvent::MessageReplied)) {
+    $reply = $payload->messageReplied();
+    $reply->body();            // stripped reply, falling back to the full text
+    $reply->messageMetadata;   // the `metadata` you attached on /send
+    $reply->contactEmail;      // null when the sender is not a contact
+} else {
+    $payload->data;            // every other event: the raw `data` array
+}
+```
+
+`WebhookSignature::isValid()` / `verify()` check a signature on their own
+(constant-time), for when you parse the body yourself.
+
 ### Automatic pagination
 
 Paginated resources also expose a `cursor()` generator that lazily walks every
@@ -1203,20 +1263,37 @@ Every non-2xx response is mapped to a typed exception. All exceptions extend
 | `AuthenticationException` | 401         | Missing/invalid/expired token. |
 | `NotFoundException`       | 404         | e.g. `contact_not_found`, `template_not_found`, `message_not_found`; a sandbox `simulate()` from a **production** token gets a bare `404` (no code). |
 | `ValidationException`     | 422         | Validation failures and domain rejections (`recipient_suppressed`, `quota_exceeded`, `template_not_found`, `invalid_status_transition`, sandbox `invalid_event_for_channel` / `link_index_out_of_range`, ...). Adds `errors(): array` (field => messages). |
+| `TemplateResendTooSoonException` | 422 | Subclass of `ValidationException` for `template_resend_too_soon`: the template's resend guard refused a second send to the same contact inside its window. Adds `retryAfterSeconds(): ?int`. Deliberately not a 429, so nothing auto-retries into the duplicate. In a batch it is a per-item result instead (`BatchItem::$retryAfterSeconds`). |
 | `VerificationEstimateMismatchException` | 422 | Subclass of `ValidationException` for `estimate_mismatch`: a billed verification run was refused because the scope moved. Adds `currentEstimate(): ?VerificationEstimate`, ready to hand back to `run()`. |
 | `RateLimitException`      | 429         | Adds `retryAfter(): ?int` parsed from the `Retry-After` header. |
 | `RecadoConfigurationException` | — (local) | Missing/empty/placeholder base URL (or the decommissioned `mailer.mosaiqo.com` v1.x host) or empty token; thrown at client construction before any request. |
 | `UnsupportedFeatureException` | — (local) | The send relies on something the `/send` API has no field for, or that the SDK config disables (e.g. attachments with `recado-sdk.mail.attachments = 'fail'`). |
 | `AttachmentsTooLargeException` | — (local) | The decoded attachments of one send exceed the 10 MB total limit; thrown before any upload. `getErrorCode()` is `attachments_too_large`, the same code the server returns for the 422. |
+| `WebhookVerificationException` | — (local) | An incoming webhook failed `WebhookPayload::constructEvent()` / `WebhookSignature::verify()`: `invalid_webhook_signature` or `invalid_webhook_payload`. |
 | `RecadoException`         | any other   | Base class; also the catch-all for unexpected non-2xx statuses. |
 
+Codes worth handling explicitly (all `422`, surfaced on `ValidationException`
+or its subclasses):
+
+| `getErrorCode()` | Meaning |
+| --- | --- |
+| `recipient_suppressed` | The address is on a suppression list (or the contact bounced/complained). |
+| `quota_exceeded` | The plan's monthly quota is used up. |
+| `sending_provider_required` | The project has no enabled email provider yet — connect its own Amazon SES account first. Nothing was created. |
+| `sending_domain_not_verified` | The from address is not on a verified sending domain. |
+| `template_resend_too_soon` | The template's resend guard refused this contact; the body carries `retry_after_seconds` (`TemplateResendTooSoonException::retryAfterSeconds()`). |
+| `template_not_found` | No template with that slug in the project. |
+
 ```php
+use Recado\Sdk\Exception\TemplateResendTooSoonException;
 use Recado\Sdk\Exception\ValidationException;
 use Recado\Sdk\Exception\RateLimitException;
 use Recado\Sdk\Exception\RecadoException;
 
 try {
     $client->send()->email(['to' => 'jane@example.com', 'template' => 'welcome']);
+} catch (TemplateResendTooSoonException $e) {
+    // already sent recently — do not resend before $e->retryAfterSeconds()
 } catch (ValidationException $e) {
     if ($e->getErrorCode() === 'recipient_suppressed') {
         // address is on the suppression list — skip it
