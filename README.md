@@ -598,6 +598,13 @@ foreach ($thread->items as $item) {
 $client->conversations()->markRead($thread->uuid);
 $client->conversations()->archive($thread->uuid); // a new human reply brings it back
 
+// Reply from Recado (`send` scope): ONE plain-text email in the same thread,
+// from the address the person wrote to. The text is sent literally ({{ }} is
+// never rendered); the project signature and the quoted message are added.
+$reply = $client->conversations()->reply($thread->uuid, "Thanks, it ships today.", idempotencyKey: 'order-42-reply');
+$reply->messageUuid;
+$reply->inboundNotActive(); // true = their next answer will not come back to Recado
+
 // Campaigns (full lifecycle — see "Campaigns" below)
 $campaigns = $client->campaigns()->list(['status' => 'sent', 'per_page' => 50]);
 $campaign = $client->campaigns()->get(7);

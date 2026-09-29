@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Reply to an Inbox conversation.** `conversations()->reply($uuid, $text,
+  quote: true, inReplyTo: null, attachments: [], idempotencyKey: null)` (POST
+  `/conversations/{uuid}/replies`, `send` scope) sends one plain-text reply in
+  the same email thread, from the address the person wrote to, and returns a
+  `ConversationReply` DTO (`messageUuid`, `status`, `warnings`,
+  `inboundNotActive()`). The text is sent literally; the recipient is chosen by
+  Recado (an unverified reply is answered to the address Recado originally
+  mailed). Refusals are a `ValidationException` with code
+  `reply_window_expired`, `awaiting_contact_reply`, `recipient_suppressed`,
+  `sending_provider_required` or `plan_upgrade_required`.
+
 - **Inbox: every reply + conversations.** `replies()->list()/cursor()` (GET
   `/replies`) lists every reply the project received, newest first, with the
   filters `since`/`until`, `email`, `message_uuid`, `conversation_uuid` and the

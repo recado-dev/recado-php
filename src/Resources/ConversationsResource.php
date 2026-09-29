@@ -5,13 +5,15 @@ declare(strict_types=1);
 namespace Recado\Sdk\Resources;
 
 use Recado\Sdk\Dto\Conversation;
+use Recado\Sdk\Dto\ConversationReply;
 use Recado\Sdk\Dto\Paginated;
 use Recado\Sdk\Http\HttpClient;
 use Recado\Sdk\Resources\Concerns\PaginatesResults;
 
 /**
- * The Inbox conversations: read the threads contacts started by replying, and
- * triage them (mark read/unread, archive). Needs the `management` scope.
+ * The Inbox conversations: read the threads contacts started by replying,
+ * triage them (mark read/unread, archive) — the `management` scope — and
+ * reply to them from Recado with `reply()` — the `send` scope.
  *
  * The read/archive state is shared by the whole team (and every key); a new
  * human reply always marks a conversation unread again and brings it back
@@ -95,6 +97,52 @@ final readonly class ConversationsResource
     public function unarchive(string $uuid): Conversation
     {
         return $this->update($uuid, archived: false);
+    }
+
+    /**
+     * Reply to the person of a conversation from Recado
+     * (POST /conversations/{uuid}/replies). Needs the `send` scope.
+     *
+     * ONE plain-text email, sent literally (`{{ }}` is never rendered), in the
+     * same thread, from the address the person wrote to. The recipient is
+     * never free-form: Recado answers an unverified reply to the address it
+     * originally mailed. The project signature and — with `$quote` — the
+     * quoted message are appended. Refusals are a `ValidationException` with
+     * code `reply_window_expired` / `awaiting_contact_reply` (a person who is
+     * not a subscribed contact), `recipient_suppressed`,
+     * `sending_provider_required` or `plan_upgrade_required`.
+     *
+     * @param  string|null  $inReplyTo  uuid of the received reply to answer
+     *                                  (default: the person's latest reply).
+     * @param  list<array{filename: string, content_type: string, content: string}>  $attachments  base64 content, the `/send` limits.
+     */
+    public function reply(
+        string $uuid,
+        string $text,
+        bool $quote = true,
+        ?string $inReplyTo = null,
+        array $attachments = [],
+        ?string $idempotencyKey = null,
+    ): ConversationReply {
+        $payload = ['text' => $text, 'quote' => $quote];
+
+        if ($inReplyTo !== null) {
+            $payload['in_reply_to'] = $inReplyTo;
+        }
+
+        if ($attachments !== []) {
+            $payload['attachments'] = $attachments;
+        }
+
+        $options = ['json' => $payload];
+
+        if ($idempotencyKey !== null) {
+            $options['idempotency_key'] = $idempotencyKey;
+        }
+
+        $response = $this->http->post('conversations/'.rawurlencode($uuid).'/replies', $options);
+
+        return ConversationReply::fromArray(is_array($response['data'] ?? null) ? $response['data'] : []);
     }
 
     /**

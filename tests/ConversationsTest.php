@@ -7,6 +7,7 @@ namespace Recado\Sdk\Tests;
 use Recado\Sdk\Dto\Conversation;
 use Recado\Sdk\Dto\InboundReply;
 use Recado\Sdk\Exception\NotFoundException;
+use Recado\Sdk\Exception\ValidationException;
 
 /**
  * The Inbox surface: `replies()` (GET /replies) and `conversations()`
@@ -174,6 +175,38 @@ final class ConversationsTest extends TestCase
             $this->fail('Expected a NotFoundException.');
         } catch (NotFoundException $exception) {
             $this->assertSame('conversation_not_found', $exception->getErrorCode());
+        }
+    }
+
+    public function test_reply_posts_the_text_and_returns_the_warnings(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(202, ['data' => [
+                'message' => ['uuid' => 'm-9', 'status' => 'queued'],
+                'warnings' => ['inbound_not_active'],
+            ]]),
+            $this->jsonResponse(422, ['message' => 'Too old.', 'code' => 'reply_window_expired']),
+        ], $history);
+
+        $reply = $client->conversations()->reply('c-1', 'Thanks!', quote: false, inReplyTo: 'r-1', idempotencyKey: 'k-1');
+
+        $this->assertSame('POST', $history[0]['request']->getMethod());
+        $this->assertSame('/api/v1/conversations/c-1/replies', $history[0]['request']->getUri()->getPath());
+        $this->assertSame('k-1', $history[0]['request']->getHeaderLine('Idempotency-Key'));
+        $this->assertSame(
+            ['text' => 'Thanks!', 'quote' => false, 'in_reply_to' => 'r-1'],
+            json_decode((string) $history[0]['request']->getBody(), true),
+        );
+        $this->assertSame('m-9', $reply->messageUuid);
+        $this->assertSame('queued', $reply->status);
+        $this->assertTrue($reply->inboundNotActive());
+
+        try {
+            $client->conversations()->reply('c-1', 'Again');
+            $this->fail('Expected a ValidationException.');
+        } catch (ValidationException $exception) {
+            $this->assertSame('reply_window_expired', $exception->getErrorCode());
         }
     }
 }
