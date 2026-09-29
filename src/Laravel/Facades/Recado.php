@@ -35,6 +35,7 @@ use Recado\Sdk\RecadoClient;
  * @method static \Recado\Sdk\Resources\CustomDomainsResource customDomains()
  * @method static \Recado\Sdk\Resources\ProjectResource project()
  * @method static \Recado\Sdk\Resources\VerificationResource verification()
+ * @method static \Recado\Sdk\Resources\VerifyResource verify()
  *
  * @see RecadoClient
  */

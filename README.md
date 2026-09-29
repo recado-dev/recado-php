@@ -1099,6 +1099,38 @@ downgraded team keeps managing the domain it already has. Other refusals:
 Not available in a sandbox — see [Production-only
 endpoints](#production-only-endpoints) below.
 
+### Real-time email verification (included)
+
+Check one address while your user waits — typically in a signup form — and get
+the same verdict a contact with that address would carry. Included in every
+plan (no external provider), and nothing is stored: no contact is created. Use
+a key with only the `verify` scope, and keep it server-side.
+
+```php
+$result = $client->verify()->email($request->input('email'));
+
+if ($result->isInvalid()) {
+    // Cannot receive mail: malformed, no mail route, or a mailbox an earlier
+    // SMTP probe saw rejected.
+}
+
+if ($result->didYouMean !== null) {
+    // "Did you mean ana@gmail.com?" — offer the correction, let the user keep
+    // what they typed.
+}
+
+// $result->status: valid | risky | invalid | unknown
+// $result->reasons: ['domain_typo', 'domain_disposable', 'role_address', ...]
+// $result->disposable, $result->role, $result->mxFound (null = not determined)
+// $result->smtpStatus / smtpCheckedAt: a cached probe answer, else null
+```
+
+Never block on `unknown`: it means a DNS lookup ran out of time, not that the
+address is bad. Every call counts toward the team's monthly verifications
+(sandbox keys are free); a plan with a monthly cap throws a
+`ValidationException` whose `getErrorCode()` is `verification_quota_exceeded`
+once it is spent.
+
 ### Email verification (billed)
 
 Every contact already carries Recado's **free** verdict

@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Real-time email verification.** `verify()->email($email)` (POST `/verify`)
+  returns an `EmailVerification` DTO — `status` (`valid`/`risky`/`invalid`/
+  `unknown`), `reasons`, `didYouMean` (the full corrected address for a likely
+  typo), `disposable`, `role`, `mxFound` and a cached SMTP probe answer
+  (`smtpStatus`/`smtpCheckedAt`). The same verdict a contact would carry; no
+  contact is created. Needs the new `verify` key scope (full-access keys pass).
+  A spent monthly allowance is a `ValidationException` with code
+  `verification_quota_exceeded`. `Recado::verify()` on the Laravel facade.
+
 ## [2.7.0] - 2026-09-29
 
 ### Added

@@ -27,6 +27,7 @@ use Recado\Sdk\Resources\SendResource;
 use Recado\Sdk\Resources\TagsResource;
 use Recado\Sdk\Resources\TemplatesResource;
 use Recado\Sdk\Resources\VerificationResource;
+use Recado\Sdk\Resources\VerifyResource;
 use Recado\Sdk\Resources\WaitlistsResource;
 use Recado\Sdk\Resources\WebhooksResource;
 
@@ -106,6 +107,8 @@ final class RecadoClient
     private ?ProjectResource $project = null;
 
     private ?VerificationResource $verification = null;
+
+    private ?VerifyResource $verify = null;
 
     /**
      * @param  array<string, mixed>  $options  Transport/resilience options applied
@@ -292,5 +295,14 @@ final class RecadoClient
     public function verification(): VerificationResource
     {
         return $this->verification ??= new VerificationResource($this->http);
+    }
+
+    /**
+     * Real-time verification of one address (included, nothing stored) — the
+     * check a signup form runs. Needs the `verify` scope.
+     */
+    public function verify(): VerifyResource
+    {
+        return $this->verify ??= new VerifyResource($this->http);
     }
 }
