@@ -20,6 +20,9 @@ use Recado\Sdk\Dto\MessageAttachment;
  * - `contactUuid`/`contactEmail` are null when the sender is not a contact of
  *   the project (a reply never creates one).
  *
+ * - `conversation*` name the Inbox thread the reply joined and its state right
+ *   after it (null from a server that predates the Inbox).
+ *
  * Only authenticated, non-automatic replies fire this event, exactly once per
  * stored reply. `auth` carries the provider's SPF/DKIM/DMARC verdicts.
  */
@@ -52,6 +55,9 @@ final readonly class MessageReplied
         public ?string $contactUuid,
         public ?string $contactEmail,
         public array $raw,
+        public ?string $conversationUuid = null,
+        public ?bool $conversationUnread = null,
+        public ?bool $conversationArchived = null,
     ) {}
 
     /**
@@ -62,6 +68,7 @@ final readonly class MessageReplied
         $inbound = is_array($data['inbound'] ?? null) ? $data['inbound'] : [];
         $message = is_array($data['message'] ?? null) ? $data['message'] : [];
         $contact = is_array($data['contact'] ?? null) ? $data['contact'] : [];
+        $conversation = is_array($data['conversation'] ?? null) ? $data['conversation'] : null;
         $auth = is_array($inbound['auth'] ?? null) ? $inbound['auth'] : [];
 
         $attachments = [];
@@ -96,6 +103,9 @@ final readonly class MessageReplied
             contactUuid: self::string($contact, 'uuid'),
             contactEmail: self::string($contact, 'email'),
             raw: $data,
+            conversationUuid: $conversation === null ? null : self::string($conversation, 'uuid'),
+            conversationUnread: $conversation === null ? null : (bool) ($conversation['unread'] ?? false),
+            conversationArchived: $conversation === null ? null : (bool) ($conversation['archived'] ?? false),
         );
     }
 

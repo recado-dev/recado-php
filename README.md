@@ -582,6 +582,22 @@ foreach ($client->messages()->repliesCursor($message->uuid) as $reply) {
 }
 $client->contacts()->replies('jane@example.com', ['per_page' => 50]);
 
+// Every reply of the project — the recovery path for a missed
+// `message.replied` webhook: human + authenticated = what the webhook delivers.
+foreach ($client->replies()->cursor(['since' => '2026-09-28', 'human' => true, 'authenticated' => true]) as $reply) {
+    $reply->conversationUuid; // the Inbox thread it belongs to
+}
+
+// Inbox conversations: one thread per email a contact replied to, with the
+// team's SHARED read/archive state. Reading does not mark it read.
+$unread = $client->conversations()->list(['unread' => true, 'archived' => false]);
+$thread = $client->conversations()->get($unread->data[0]->uuid);
+foreach ($thread->items as $item) {
+    $item->isInbound() ? $item->reply?->body() : $item->message?->status;
+}
+$client->conversations()->markRead($thread->uuid);
+$client->conversations()->archive($thread->uuid); // a new human reply brings it back
+
 // Campaigns (full lifecycle — see "Campaigns" below)
 $campaigns = $client->campaigns()->list(['status' => 'sent', 'per_page' => 50]);
 $campaign = $client->campaigns()->get(7);

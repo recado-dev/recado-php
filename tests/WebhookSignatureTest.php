@@ -119,6 +119,9 @@ final class WebhookSignatureTest extends BaseTestCase
         $this->assertSame(['subscription_id' => 'sub_123'], $reply->messageMetadata);
         $this->assertSame('c-1', $reply->contactUuid);
         $this->assertSame('ana@example.org', $reply->contactEmail);
+        $this->assertSame('cv-1', $reply->conversationUuid);
+        $this->assertTrue($reply->conversationUnread);
+        $this->assertFalse($reply->conversationArchived);
     }
 
     public function test_message_replied_tolerates_a_deleted_message_and_an_unknown_sender(): void
@@ -137,6 +140,9 @@ final class WebhookSignatureTest extends BaseTestCase
         $this->assertNull($reply->messageUuid);
         $this->assertNull($reply->messageMetadata);
         $this->assertNull($reply->contactUuid);
+        // A payload from a server that predates the Inbox.
+        $this->assertNull($reply->conversationUuid);
+        $this->assertNull($reply->conversationUnread);
         $this->assertTrue($reply->truncated);
         $this->assertSame('Full text', $reply->body());
         $this->assertSame(['spf' => null, 'dkim' => null, 'dmarc' => null], $reply->auth);
@@ -172,6 +178,7 @@ final class WebhookSignatureTest extends BaseTestCase
                     'sent_at' => '2026-09-28T09:00:02+00:00',
                 ],
                 'contact' => ['uuid' => 'c-1', 'email' => 'ana@example.org'],
+                'conversation' => ['uuid' => 'cv-1', 'unread' => true, 'archived' => false],
             ],
         ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
     }

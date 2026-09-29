@@ -10,6 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Inbox: every reply + conversations.** `replies()->list()/cursor()` (GET
+  `/replies`) lists every reply the project received, newest first, with the
+  filters `since`/`until`, `email`, `message_uuid`, `conversation_uuid` and the
+  booleans `authenticated`, `human`, `unread`, `archived` (PHP bools are sent as
+  `true`/`false`) — the recovery path when a `message.replied` webhook was
+  missed. `conversations()` reads the Inbox threads (`list()`, `cursor()`,
+  `get()` with the whole thread as `ConversationItem`s) and triages them
+  (`update()`, `markRead()`, `markUnread()`, `archive()`, `unarchive()`); an
+  unknown uuid is a `NotFoundException` with code `conversation_not_found`. New
+  DTOs `Conversation`, `ConversationRootMessage`, `ConversationItem`;
+  `InboundReply` gained `conversationUuid`, and the typed `message.replied`
+  payload (`Webhooks\MessageReplied`) gained `conversationUuid`,
+  `conversationUnread` and `conversationArchived` (null from an older server). `Recado::replies()` /
+  `Recado::conversations()` on the Laravel facade. Needs the `management` scope.
+
 - **Real-time email verification.** `verify()->email($email)` (POST `/verify`)
   returns an `EmailVerification` DTO — `status` (`valid`/`risky`/`invalid`/
   `unknown`), `reasons`, `didYouMean` (the full corrected address for a likely

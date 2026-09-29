@@ -19,6 +19,8 @@ use Recado\Sdk\RecadoClient;
  * @method static \Recado\Sdk\Resources\TagsResource tags()
  * @method static \Recado\Sdk\Resources\TemplatesResource templates()
  * @method static \Recado\Sdk\Resources\MessagesResource messages()
+ * @method static \Recado\Sdk\Resources\RepliesResource replies()
+ * @method static \Recado\Sdk\Resources\ConversationsResource conversations()
  * @method static \Recado\Sdk\Resources\CampaignsResource campaigns()
  * @method static \Recado\Sdk\Resources\NotificationsResource notifications()
  * @method static \Recado\Sdk\Resources\PushTokensResource push()

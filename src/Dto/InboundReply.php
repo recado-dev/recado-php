@@ -6,7 +6,8 @@ namespace Recado\Sdk\Dto;
 
 /**
  * A stored reply a contact sent to one of the project's emails
- * (GET /messages/{uuid}/replies, GET /contacts/{email}/replies).
+ * (GET /replies, GET /messages/{uuid}/replies, GET /contacts/{email}/replies).
+ * `conversationUuid` names the Inbox conversation it belongs to.
  *
  * TEXT only: the HTML body and attachment binaries never leave the platform,
  * `attachments` is metadata (with `withheld` saying why a binary was not kept).
@@ -45,6 +46,7 @@ final readonly class InboundReply
         public bool $truncated,
         public bool $unparsable,
         public array $attachments,
+        public ?string $conversationUuid = null,
     ) {}
 
     /**
@@ -84,6 +86,7 @@ final readonly class InboundReply
             truncated: (bool) ($data['truncated'] ?? false),
             unparsable: (bool) ($data['unparsable'] ?? false),
             attachments: $attachments,
+            conversationUuid: self::string($data, 'conversation_uuid'),
         );
     }
 

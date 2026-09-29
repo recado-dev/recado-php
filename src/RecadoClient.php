@@ -10,6 +10,7 @@ use Recado\Sdk\Http\HttpClient;
 use Recado\Sdk\Resources\BroadcastsResource;
 use Recado\Sdk\Resources\CampaignsResource;
 use Recado\Sdk\Resources\ContactsResource;
+use Recado\Sdk\Resources\ConversationsResource;
 use Recado\Sdk\Resources\CustomDomainsResource;
 use Recado\Sdk\Resources\DeliveryResource;
 use Recado\Sdk\Resources\EventsResource;
@@ -20,6 +21,7 @@ use Recado\Sdk\Resources\NotificationsResource;
 use Recado\Sdk\Resources\NotificationTemplatesResource;
 use Recado\Sdk\Resources\ProjectResource;
 use Recado\Sdk\Resources\PushTokensResource;
+use Recado\Sdk\Resources\RepliesResource;
 use Recado\Sdk\Resources\SandboxResource;
 use Recado\Sdk\Resources\SegmentsResource;
 use Recado\Sdk\Resources\SendingDomainsResource;
@@ -75,6 +77,10 @@ final class RecadoClient
     private ?TemplatesResource $templates = null;
 
     private ?MessagesResource $messages = null;
+
+    private ?RepliesResource $replies = null;
+
+    private ?ConversationsResource $conversations = null;
 
     private ?CampaignsResource $campaigns = null;
 
@@ -197,6 +203,22 @@ final class RecadoClient
     public function messages(): MessagesResource
     {
         return $this->messages ??= new MessagesResource($this->http);
+    }
+
+    /**
+     * Every reply the project received (GET /replies).
+     */
+    public function replies(): RepliesResource
+    {
+        return $this->replies ??= new RepliesResource($this->http);
+    }
+
+    /**
+     * The Inbox conversations: read and triage (read/unread, archive).
+     */
+    public function conversations(): ConversationsResource
+    {
+        return $this->conversations ??= new ConversationsResource($this->http);
     }
 
     public function campaigns(): CampaignsResource
