@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `CampaignStats::$bouncedHard` / `$bouncedSoft` and
+  `CampaignVariant::$bounced` / `$bouncedHard` / `$bouncedSoft`: campaign
+  statistics now separate hard (permanent) bounces from soft (transient) ones.
+  `bounced` keeps its name but counts HARD bounces only — it used to include
+  every message with any bounce event, soft ones too — and `bouncedHard` is
+  its explicit alias. All of them are null against an API that predates the
+  split.
+
 ## [2.8.0] - 2026-09-30
 
 ### Added

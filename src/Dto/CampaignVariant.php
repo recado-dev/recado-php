@@ -11,8 +11,10 @@ namespace Recado\Sdk\Dto;
  * `ab_test` block of every campaign read and write: a null one means the
  * variant inherits that campaign field, which is exactly the distinction a
  * client editing the draft needs. The ENGAGEMENT fields (sent, delivered,
- * opens, clicks, rates) come back on `include=variants` and are null
- * otherwise. The winner's numbers include the remainder send.
+ * opens, clicks, rates, bounces) come back on `include=variants` and are null
+ * otherwise. The winner's numbers include the remainder send. `bounced` (and
+ * its alias `bouncedHard`) counts hard bounces only; `bouncedSoft` the
+ * transient ones.
  *
  * `localeVariants` holds this variant's own translations — the per-variant
  * half of the language matrix, which wins over the campaign's translations for
@@ -46,6 +48,9 @@ final readonly class CampaignVariant
         public ?string $fromEmail = null,
         public ?array $content = null,
         public array $localeVariants = [],
+        public ?int $bounced = null,
+        public ?int $bouncedHard = null,
+        public ?int $bouncedSoft = null,
     ) {}
 
     /**
@@ -69,6 +74,9 @@ final readonly class CampaignVariant
             fromEmail: isset($data['from_email']) ? (string) $data['from_email'] : null,
             content: is_array($data['content'] ?? null) ? $data['content'] : null,
             localeVariants: CampaignLocaleVariant::listFrom($data['locale_variants'] ?? null),
+            bounced: isset($data['bounced']) ? (int) $data['bounced'] : null,
+            bouncedHard: isset($data['bounced_hard']) ? (int) $data['bounced_hard'] : null,
+            bouncedSoft: isset($data['bounced_soft']) ? (int) $data['bounced_soft'] : null,
         );
     }
 }

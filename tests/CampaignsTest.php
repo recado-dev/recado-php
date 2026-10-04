@@ -77,6 +77,8 @@ final class CampaignsTest extends TestCase
                         'open_rate' => 0.6061,
                         'click_rate' => 0.303,
                         'click_to_open_rate' => null,
+                        'bounced_hard' => 2,
+                        'bounced_soft' => 117,
                     ],
                 ],
             ]),
@@ -96,6 +98,8 @@ final class CampaignsTest extends TestCase
         $this->assertSame(240, $campaign->stats->totalOpens);
         $this->assertSame(60, $campaign->stats->uniqueClicks);
         $this->assertSame(2, $campaign->stats->bounced);
+        $this->assertSame(2, $campaign->stats->bouncedHard, 'bounced_hard is the explicit alias of bounced.');
+        $this->assertSame(117, $campaign->stats->bouncedSoft);
         $this->assertSame(1, $campaign->stats->unsubscribed);
         $this->assertSame(0.6061, $campaign->stats->openRate);
         $this->assertSame(0.303, $campaign->stats->clickRate);

@@ -10,6 +10,12 @@ namespace Recado\Sdk\Dto;
  *
  * Rates are `null` when their denominator is zero (e.g. no delivery feedback
  * configured) rather than a misleading 0.0.
+ *
+ * `bounced` counts HARD (permanent) bounces only — the messages whose status
+ * is `bounced` — and `bouncedHard` is its explicit alias. `bouncedSoft` counts
+ * the messages that only bounced transiently (mailbox full, temporary
+ * failure); it is informational and never part of a bounce rate. Both are
+ * null against an API version that predates the split.
  */
 final readonly class CampaignStats
 {
@@ -25,6 +31,8 @@ final readonly class CampaignStats
         public ?float $openRate,
         public ?float $clickRate,
         public ?float $clickToOpenRate,
+        public ?int $bouncedHard = null,
+        public ?int $bouncedSoft = null,
     ) {}
 
     /**
@@ -44,6 +52,8 @@ final readonly class CampaignStats
             openRate: isset($data['open_rate']) ? (float) $data['open_rate'] : null,
             clickRate: isset($data['click_rate']) ? (float) $data['click_rate'] : null,
             clickToOpenRate: isset($data['click_to_open_rate']) ? (float) $data['click_to_open_rate'] : null,
+            bouncedHard: isset($data['bounced_hard']) ? (int) $data['bounced_hard'] : null,
+            bouncedSoft: isset($data['bounced_soft']) ? (int) $data['bounced_soft'] : null,
         );
     }
 }
