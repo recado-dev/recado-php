@@ -12,8 +12,9 @@ use Recado\Sdk\Exception\WebhookVerificationException;
  * `{event, timestamp, project: {uuid}, sandbox, data}`.
  *
  * `data` is kept as the raw decoded array so every event stays readable,
- * including events newer than this SDK. `message.replied` also has a typed
- * view through `messageReplied()`.
+ * including events newer than this SDK. Some events also have a typed view:
+ * `messageReplied()`, `identityBreakerTripped()`, `identityBreakerResumed()`
+ * and `identityTransactionalAlert()`.
  *
  * `sandbox` is true when the event came from the project's sandbox twin (a
  * test run, nothing reached a real recipient).
@@ -115,5 +116,48 @@ final readonly class WebhookPayload
         }
 
         return MessageReplied::fromArray($this->data);
+    }
+
+    /**
+     * The typed `identity.breaker_tripped` data.
+     *
+     * @throws LogicException when this delivery is another event.
+     */
+    public function identityBreakerTripped(): IdentityBreakerTripped
+    {
+        $this->expect(WebhookEvent::IdentityBreakerTripped);
+
+        return IdentityBreakerTripped::fromArray($this->data);
+    }
+
+    /**
+     * The typed `identity.breaker_resumed` data.
+     *
+     * @throws LogicException when this delivery is another event.
+     */
+    public function identityBreakerResumed(): IdentityBreakerResumed
+    {
+        $this->expect(WebhookEvent::IdentityBreakerResumed);
+
+        return IdentityBreakerResumed::fromArray($this->data);
+    }
+
+    /**
+     * The typed `identity.transactional_alert` data.
+     *
+     * @throws LogicException when this delivery is another event.
+     */
+    public function identityTransactionalAlert(): IdentityTransactionalAlert
+    {
+        $this->expect(WebhookEvent::IdentityTransactionalAlert);
+
+        return IdentityTransactionalAlert::fromArray($this->data);
+    }
+
+    private function expect(WebhookEvent $event): void
+    {
+        if (! $this->is($event)) {
+            throw new LogicException(sprintf('This webhook is `%s`, not `%s`.', $this->event, $event->value));
+        }
     }
 }

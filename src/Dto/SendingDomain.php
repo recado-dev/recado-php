@@ -20,7 +20,11 @@ namespace Recado\Sdk\Dto;
  *
  * `warmup` mirrors the block the dashboard renders for a ramping identity
  * (`status`, `previous_status`, `day_number`, `cap`, `sent_today`, `schedule`,
- * `day_index` and, on a breaker trip, `breaker_tripped_at`/`breaker_reason`).
+ * `day_index` and, on a breaker trip, `breaker_tripped_at`/`breaker_reason`,
+ * followed by `auto_resume` — `{eligible, at, reason}` while paused, null
+ * otherwise; see `autoResume()` — and `manual_resumes` — `{count, days}`: how
+ * often the identity was resumed by hand in the last `days` days, counted
+ * while it is paused; see `manualResumeCount()`).
  * It is null for an identity that is not warm-up limited. Skipping a ramp and
  * resuming a breaker-paused identity are judgement calls about sending
  * reputation and stay HUMAN actions in the dashboard — there is no API for
@@ -83,6 +87,31 @@ final readonly class SendingDomain
     public function isVerified(): bool
     {
         return $this->status === 'verified';
+    }
+
+    /**
+     * While the reputation breaker holds this identity: whether the pause
+     * lifts by itself and when, or why it needs a person. Null when the
+     * identity is not paused, not warm-up tracked, or the API predates
+     * automatic resume.
+     */
+    public function autoResume(): ?BreakerAutoResume
+    {
+        $verdict = $this->warmup['auto_resume'] ?? null;
+
+        return is_array($verdict) ? BreakerAutoResume::fromArray($verdict) : null;
+    }
+
+    /**
+     * How often the identity was resumed BY HAND in the recent window
+     * (`warmup.manual_resumes.days` days), counted while it is paused — 0
+     * otherwise. Null when the API does not report it.
+     */
+    public function manualResumeCount(): ?int
+    {
+        $resumes = $this->warmup['manual_resumes'] ?? null;
+
+        return is_array($resumes) && isset($resumes['count']) ? (int) $resumes['count'] : null;
     }
 
     /**

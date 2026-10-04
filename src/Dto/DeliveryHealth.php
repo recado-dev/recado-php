@@ -13,8 +13,8 @@ namespace Recado\Sdk\Dto;
  * null unless the project's active email provider is BYO Amazon SES.
  *
  * Not available in a sandbox: an intercepted project has no sending
- * reputation, so a sandbox token gets a `422` with the code
- * `not_available_in_sandbox`.
+ * reputation, so a sandbox token is refused with the code
+ * `not_available_in_sandbox` (see `RecadoException::isNotAvailableInSandbox()`).
  */
 final readonly class DeliveryHealth
 {

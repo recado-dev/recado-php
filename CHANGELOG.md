@@ -8,15 +8,91 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.9.0] - 2026-10-04
+
+### Changed
+
+- **The VALUE of `bounced` in campaign statistics changed on the server — it
+  now counts HARD bounces only.** `CampaignStats::$bounced` (and the per-variant
+  `CampaignVariant::$bounced`) used to include every message with any bounce
+  event, soft (transient) ones too. The API now reports hard (permanent)
+  bounces only, so **the number drops for every campaign that had soft
+  bounces — including campaigns already sent, and whatever SDK version you
+  run**. No code change is needed, but dashboards, alerts and exports built on
+  `bounced` will show lower figures than before; anything you stored earlier is
+  not comparable with a fresh read. Use the new `bouncedHard` (the explicit
+  alias of the same number) in new code and `bouncedSoft` for the transient
+  ones.
+- **Sender health now judges marketing email only.** The rates, `sample` and
+  `health` of `SendingDomainHealth` (GET `/delivery/health`) cover campaigns,
+  marketing automations and marketing sends; transactional mail left the
+  circuit breaker's sample and can no longer pause anything. Expect a smaller
+  `sample` and different rates on identities that carry both kinds of traffic.
+  Transactional pressure moved to the new `nonMarketing` block. The bounce rate
+  is now only judged once `minBounces` hard bounces exist in the window
+  (`bounceJudged`), and after a resume `bounces`/`complaints` only count
+  feedback newer than `breakerResumedAt`.
+- `DeliveryResource` is no longer read-only (see `updateReputationLimits()`
+  below). Resuming a paused identity by hand and skipping a warm-up ramp still
+  have no API.
+
 ### Added
 
-- `CampaignStats::$bouncedHard` / `$bouncedSoft` and
-  `CampaignVariant::$bounced` / `$bouncedHard` / `$bouncedSoft`: campaign
-  statistics now separate hard (permanent) bounces from soft (transient) ones.
-  `bounced` keeps its name but counts HARD bounces only — it used to include
-  every message with any bounce event, soft ones too — and `bouncedHard` is
-  its explicit alias. All of them are null against an API that predates the
-  split.
+- **Hard and soft bounces in campaign statistics.**
+  `CampaignStats::$bouncedHard` / `$bouncedSoft` and
+  `CampaignVariant::$bounced` / `$bouncedHard` / `$bouncedSoft`. `bouncedSoft`
+  counts the messages that only bounced transiently (mailbox full, temporary
+  failure): informational, never part of a bounce rate. All of them are null
+  against an API that predates the split.
+
+- **Transactional pressure, breaker history and automatic resume on delivery
+  health.** `SendingDomainHealth` gained `minBounces`, `nonMarketing` (a
+  `NonMarketingHealth` DTO: `sample`, `bounces`, `complaints`, `bounceRate`,
+  `complaintRate`, the alert-only verdict `alertLevel` — null, `warning` or
+  `critical` — with `alertThresholds` and `alertedAt`, plus `isAlerting()` /
+  `isCritical()`), `breakerResumedAt` and `history` (the identity's latest 20
+  circuit-breaker events, newest first, as `BreakerHistoryEvent` DTOs: `id`,
+  `type` `trip`/`manual_resume`/`auto_resume`/`alert`, `occurredAt`, `traffic`,
+  `actorType`, `evaluation`, `resume`, `level`, `autoResume`, with `isTrip()`,
+  `isResume()`, `isAutomaticResume()`, `isAlert()`). While an identity is
+  paused, `SendingDomainHealth::autoResume()` returns a `BreakerAutoResume`
+  (`eligible`, `at`, `reason` — `complaints`, `auto_resume_used`, `disabled` or
+  `unknown_cause` —, `needsManualResume()`): whether the pause lifts by itself
+  and when, or why it needs a person. All null/empty against an older API.
+
+- **Reputation limits.** `delivery()->reputationLimits()` (GET
+  `/delivery/reputation-limits`) and `delivery()->updateReputationLimits([...])`
+  (PATCH) read and override the thresholds sender health, the circuit breaker
+  and the transactional alert are judged with, returning a `ReputationLimits`
+  DTO: `effective`, `overrides`, `defaults`, `limits` (the bounds of an
+  override), `source`, `longWindowHours` / `shortWindowHours` and `autoResume`
+  (a `ReputationAutoResume`: `enabled`, `override`, `default`, `cooldownHours`,
+  `maxPerDays`), with `effective($key)`, `isOverridden($key)` and
+  `isCustomized()`. The update is partial and a `null` value clears that
+  override; it accepts `bounce_rate`, `complaint_rate`, `min_sample`,
+  `short_min_sample`, `min_bounces`, `min_complaints`, `bounce_warning`,
+  `bounce_critical` and `auto_resume_enabled`. A value outside its bounds is a
+  `ValidationException` with the `errors` map. Needs the `management` scope;
+  refused for a sandbox credential (`isNotAvailableInSandbox()`).
+
+- **Automatic-resume verdict on sending domains.** `SendingDomain::autoResume()`
+  (the `warmup.auto_resume` block, a `BreakerAutoResume` while the identity is
+  paused) and `SendingDomain::manualResumeCount()` (`warmup.manual_resumes`).
+
+- **Typed sending-identity webhooks.** `WebhookPayload::identityBreakerTripped()`
+  (`Webhooks\IdentityBreakerTripped`: `domain`, rates, `sample`, thresholds,
+  `windowHours` and the new `autoResume` verdict, with
+  `willResumeAutomatically()`), `identityBreakerResumed()`
+  (`Webhooks\IdentityBreakerResumed`, the new `identity.breaker_resumed` event:
+  `resumedBy`, `actor`, `trippedAt`, `resumedAt`, `restoredStatus`,
+  `resumedCampaigns`, `resumedAutomationSends`, `isAutomatic()`) and
+  `identityTransactionalAlert()` (`Webhooks\IdentityTransactionalAlert`, the
+  new `identity.transactional_alert` event: `level`, `traffic`, `metric`,
+  `paused` — always false —, rates, `sample`, `bounces`, `complaints`, the three
+  thresholds, `windowHours`, `isCritical()`). Each keeps the raw `data` block
+  and throws a `LogicException` on another event, like `messageReplied()`.
+  `WebhookEvent::IdentityTransactionalAlert` and
+  `WebhookEvent::IdentityBreakerResumed` are subscribable.
 
 ## [2.8.0] - 2026-09-30
 
@@ -735,7 +811,8 @@ the same code and tests, renamed. Everything brand-carrying is breaking:
   (wrappable in a Laravel `LazyCollection`).
 - Read-only campaigns resource (`campaigns()->list()` / `get()` with stats).
 
-[Unreleased]: https://github.com/recado-dev/recado-php/compare/v2.8.0...main
+[Unreleased]: https://github.com/recado-dev/recado-php/compare/v2.9.0...main
+[2.9.0]: https://github.com/recado-dev/recado-php/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/recado-dev/recado-php/compare/v2.7.0...v2.8.0
 [2.7.0]: https://github.com/recado-dev/recado-php/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/recado-dev/recado-php/compare/v2.5.0...v2.6.0

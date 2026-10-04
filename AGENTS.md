@@ -104,6 +104,10 @@ Beyond email sends, the client exposes:
   (asynchronous: poll until the run is finished).
 - `Recado::delivery()->health()` and `Recado::notifications()->analytics()` —
   read-only observability. Delivery health is refused in a sandbox.
+- `Recado::delivery()->reputationLimits()` / `->updateReputationLimits([...])` —
+  the thresholds the reputation breaker and the transactional alert judge with
+  (production only). Loosening a limit changes when marketing email pauses:
+  propose the change to the human before writing it.
 - `Recado::project()->get()` — who this key acts as. Call `->isSandbox()` FIRST
   when you are unsure whether you hold a test or a production credential.
 - `Recado::waitlists()` — hosted pre-launch signup pages: read the ranked

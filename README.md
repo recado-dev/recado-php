@@ -27,7 +27,8 @@ Laravel integration.
 - Automatic, idempotency-safe retries with exponential backoff.
 - Lazy pagination via `cursor()` generators (no page bookkeeping).
 - Per-send idempotency keys to make retries duplicate-free.
-- Webhook signature verification and a typed `message.replied` payload.
+- Webhook signature verification and typed payloads for `message.replied` and
+  the sending-identity events (breaker pause, resume, transactional alert).
 - Optional Laravel integration (auto-discovered): a `recado` mail transport, a
   `recado` notification channel and a `Recado` facade.
 - Zero required dependencies beyond Guzzle; the core works in plain PHP without
@@ -615,6 +616,9 @@ $campaign->progress?->skipped;
 // $campaign->stats is a populated CampaignStats on get() (and on
 // list(['include' => 'stats'])):
 echo $campaign->stats->openRate ?? 0; // rates are null when undefined
+// `bounced` counts HARD (permanent) bounces only; `bouncedHard` is its explicit
+// alias and `bouncedSoft` the transient ones (informational, never suppressing).
+$campaign->stats->bouncedHard; $campaign->stats->bouncedSoft;
 
 // Segments (the saved queries campaigns target)
 $segments = $client->segments()->list();
@@ -653,11 +657,38 @@ $client->webhooks()->delete($endpoint->id);
 // refused with the code `not_available_in_sandbox`, see isNotAvailableInSandbox())
 $health = $client->delivery()->health();
 foreach ($health->pausedDomains() as $domain) {
-    // The reputation breaker is holding this identity. Resuming it is a HUMAN
-    // action in the dashboard; there is no API for it.
+    // The reputation breaker is holding this identity's MARKETING email.
+    // Resuming it by hand is a HUMAN action in the dashboard; there is no API
+    // for it. A pause caused by bounces alone lifts by itself:
     $domain->domain; $domain->breaker['tripped_at'];
+    $domain->autoResume()?->eligible; // true = resumes at ->at, else see ->reason
+}
+foreach ($health->domains as $domain) {
+    // The rates above judge marketing email only. Transactional pressure is
+    // reported separately and only ever ALERTS (nothing is paused):
+    $domain->nonMarketing?->bounceRate;
+    $domain->nonMarketing?->alertLevel;   // null | 'warning' | 'critical'
+    // The identity's circuit-breaker history: latest 20 events, newest first.
+    foreach ($domain->history as $event) {
+        $event->type;        // trip | manual_resume | auto_resume | alert
+        $event->occurredAt; $event->actorType; $event->evaluation; $event->resume;
+    }
 }
 $health->suppressions->global; // THIS project's contacts on the shared list
+
+// Reputation limits: the thresholds health, the breaker and the alert are
+// judged with (production projects only). Rates are fractions: 0.08 = 8%.
+$limits = $client->delivery()->reputationLimits();
+$limits->effective('bounce_rate');     // the value in force
+$limits->isOverridden('bounce_rate');  // false = the platform default applies
+$limits->limits['bounce_rate'];        // ['min' => 0, 'max' => 0.1], bounds of an override
+$limits->autoResume->enabled;          // automatic resume of a bounce-only pause
+// Partial update: only the keys you send change, null CLEARS an override.
+$limits = $client->delivery()->updateReputationLimits([
+    'bounce_rate' => 0.08,
+    'min_bounces' => null,
+    'auto_resume_enabled' => false,    // every pause of the project becomes manual-only
+]);
 
 // Notification analytics (works in a sandbox too — intercepted sends are
 // recorded, so this is how you read back a test run)
@@ -1078,7 +1109,10 @@ the stored status is untouched and the call is worth retrying).
 `SendingDomain::$warmup` mirrors the dashboard's ramp block for a warming
 identity. **Skipping a ramp and resuming a breaker-paused identity have no API
 and the SDK fakes none**: they are judgement calls about sending reputation and
-stay in the dashboard, where the trip rates sit in front of a human.
+stay in the dashboard, where the trip rates sit in front of a human. While the
+breaker holds the identity, `$domain->autoResume()` says whether the pause lifts
+by itself (`eligible`, `at`) or why it needs a person (`reason`), and
+`$domain->manualResumeCount()` how often it was resumed by hand recently.
 
 Not available in a sandbox — see [Production-only
 endpoints](#production-only-endpoints) below.
@@ -1215,7 +1249,7 @@ and `verification_run_not_found`. The gate applies in a sandbox too.
 
 ### Production-only endpoints
 
-Sending domains, custom domains and delivery health are refused for a **sandbox**
+Sending domains, custom domains, delivery health and reputation limits are refused for a **sandbox**
 credential: a sandbox never sends externally and never serves customer-facing
 pages, so it has no sending identities, no public hostname and no sending
 reputation — and its token must not reach the production project's.
@@ -1271,10 +1305,33 @@ if ($payload->is(WebhookEvent::MessageReplied)) {
     $reply->body();            // stripped reply, falling back to the full text
     $reply->messageMetadata;   // the `metadata` you attached on /send
     $reply->contactEmail;      // null when the sender is not a contact
+} elseif ($payload->is(WebhookEvent::IdentityBreakerTripped)) {
+    // Marketing email through this domain is paused (transactional keeps sending).
+    $trip = $payload->identityBreakerTripped();
+    $trip->domain; $trip->bounceRate; $trip->bounceThreshold;
+    $trip->willResumeAutomatically(); // false = needs a person; see $trip->autoResume->reason
+} elseif ($payload->is(WebhookEvent::IdentityBreakerResumed)) {
+    $resume = $payload->identityBreakerResumed();
+    $resume->isAutomatic();    // resumed_by: auto | manual
+    $resume->actor;            // user | command | system — never a name
+    $resume->resumedCampaigns; // what the resume woke up
+} elseif ($payload->is(WebhookEvent::IdentityTransactionalAlert)) {
+    // A warning about TRANSACTIONAL bounce/complaint rates. Nothing is paused.
+    $alert = $payload->identityTransactionalAlert();
+    $alert->level;             // warning | critical
+    $alert->metric;            // bounce | complaint | both
+    $alert->bounceRate; $alert->bounces; $alert->sample;
 } else {
     $payload->data;            // every other event: the raw `data` array
 }
 ```
+
+`identity.breaker_tripped` carries `auto_resume` (`{eligible, at, reason}`): a
+pause caused by bounces alone lifts by itself 24 hours later, at most once per
+domain every 7 days; otherwise `reason` is `complaints`, `auto_resume_used`,
+`disabled` or `unknown_cause` and the pause waits for a person. Every resume,
+manual or automatic, fires `identity.breaker_resumed`. Neither identity payload
+ever contains a recipient address.
 
 `WebhookSignature::isValid()` / `verify()` check a signature on their own
 (constant-time), for when you parse the body yourself.
