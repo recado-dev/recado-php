@@ -32,6 +32,7 @@ enum WebhookEvent: string
     case IdentityBreakerTripped = 'identity.breaker_tripped';
     case IdentityWarmupOverflow = 'identity.warmup_overflow';
     case IdentityTransactionalAlert = 'identity.transactional_alert';
+    case IdentityBreakerResumed = 'identity.breaker_resumed';
 
     /**
      * Every subscribable event value, in catalog order.
