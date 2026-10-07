@@ -23,25 +23,44 @@ final readonly class PushTokensResource
      * app) moves it; a contact is capped at 20 devices per app (the oldest
      * of that app is evicted past the cap).
      *
-     * This endpoint registers FCM registration tokens only (on iOS too — a
-     * raw APNs device token is not accepted). Web push uses a separate VAPID
-     * subscription endpoint, so `web` is not a valid platform here — passing
-     * it yields a 422.
+     * The token format follows the transport of the push app: the default
+     * app and FCM apps take the FCM registration token (on iOS too), a
+     * direct-APNs app takes the raw APNs device token as hex (64 to 200 hex
+     * characters, any case). Web push uses a separate VAPID subscription
+     * endpoint, so `web` is not a valid platform here — passing it yields a
+     * 422.
      *
      * `$app` is the key of the push app the device belongs to, for projects
      * that deliver to several apps. Omitted, the device joins the project's
      * default app. An unknown or disabled key throws a ValidationException
      * with code `push_app_not_found`.
      *
-     * @param  string  $platform  One of `ios`, `android`.
+     * `$environment` is the APNs environment of the token, for a direct-APNs
+     * app only: `sandbox` for a development build (run from Xcode),
+     * `production` for TestFlight / App Store / notarized Mac builds.
+     * Omitted, the server assumes `production`. It is ignored for FCM apps.
+     * A token registered under the wrong environment is answered
+     * `BadDeviceToken` by Apple and removed on its first send.
+     *
+     * @param  string  $platform  `ios` or `android` (default app, FCM apps); `ios` or `macos` (direct-APNs apps).
      * @param  string|null  $app  Key of a push app; null = the default app.
+     * @param  string|null  $environment  `production` or `sandbox`; null = not sent (production).
      */
-    public function register(string $email, string $token, string $platform, ?string $app = null): PushTokenResult
-    {
+    public function register(
+        string $email,
+        string $token,
+        string $platform,
+        ?string $app = null,
+        ?string $environment = null,
+    ): PushTokenResult {
         $payload = ['email' => $email, 'token' => $token, 'platform' => $platform];
 
         if ($app !== null) {
             $payload['app'] = $app;
+        }
+
+        if ($environment !== null) {
+            $payload['environment'] = $environment;
         }
 
         $response = $this->http->post('push/tokens', ['json' => $payload]);

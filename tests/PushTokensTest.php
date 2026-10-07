@@ -52,6 +52,46 @@ final class PushTokensTest extends TestCase
         );
     }
 
+    public function test_register_sends_the_apns_environment_when_given(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(200, ['data' => ['registered' => true, 'devices' => 1]]),
+            $this->jsonResponse(200, ['data' => ['registered' => true, 'devices' => 1]]),
+        ], $history);
+
+        $hex = str_repeat('ab12', 16);
+
+        $client->push()->register('jane@example.com', $hex, 'macos', 'admin', 'sandbox');
+        // Named, without an app (the positional order of the older
+        // arguments never changed).
+        $client->push()->register('jane@example.com', $hex, 'ios', environment: 'production');
+
+        $this->assertSame(
+            ['email' => 'jane@example.com', 'token' => $hex, 'platform' => 'macos', 'app' => 'admin', 'environment' => 'sandbox'],
+            json_decode((string) $history[0]['request']->getBody(), true),
+        );
+        $this->assertSame(
+            ['email' => 'jane@example.com', 'token' => $hex, 'platform' => 'ios', 'environment' => 'production'],
+            json_decode((string) $history[1]['request']->getBody(), true),
+        );
+    }
+
+    public function test_register_never_sends_an_environment_unless_asked(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(200, ['data' => ['registered' => true, 'devices' => 1]]),
+        ], $history);
+
+        $client->push()->register('jane@example.com', 'device-token', 'ios', 'admin');
+
+        $this->assertArrayNotHasKey(
+            'environment',
+            json_decode((string) $history[0]['request']->getBody(), true),
+        );
+    }
+
     public function test_register_with_an_unknown_app_raises_a_coded_validation_error(): void
     {
         $history = [];

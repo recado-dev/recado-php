@@ -391,9 +391,10 @@ $removed = $client->push()->remove('jane@example.com', 'fcm-device-token');
 echo $removed->removed;    // true, or false if the contact had no such token
 ```
 
-The `platform` is the native device platform: `ios` or `android`. This endpoint
-registers **FCM registration tokens only** (on iOS too — a raw APNs device token
-is not accepted) — web push uses a separate VAPID subscription flow, so `web` is
+The `platform` is the native device platform: `ios` or `android` for the
+default app and FCM apps (which take **FCM registration tokens**, on iOS too),
+`ios` or `macos` for a direct-APNs push app (which takes the **raw APNs device
+token as hex**). Web push uses a separate VAPID subscription flow, so `web` is
 not accepted here (passing it yields a `422`).
 
 **Several apps per project.** When a project delivers to more than one app (a
@@ -403,6 +404,10 @@ last argument, and name the app when sending:
 ```php
 $client->push()->register('jane@example.com', 'fcm-device-token', 'ios', 'admin');
 $client->push()->remove('jane@example.com', 'fcm-device-token', 'admin');
+
+// A direct-APNs app (no Firebase): the raw hex device token, `ios` or
+// `macos`, and the APNs environment of the build that produced the token.
+$client->push()->register('jane@example.com', $hexDeviceToken, 'macos', 'admin', 'sandbox');
 
 $client->notifications()->send([
     'to' => 'jane@example.com',

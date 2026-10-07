@@ -27,11 +27,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     (`push_app_not_found`); in a batch it is a per-channel
     `failed_precondition` / `push_app_not_found` outcome.
   - The device cap is now 20 per contact **and app**.
+- **Direct APNs push apps and macOS.** A push app can now deliver straight
+  through Apple (no Firebase), for native iPhone, iPad and Mac apps that only
+  hold a raw APNs device token.
+  - `push()->register($email, $token, $platform, ?string $app = null, ?string $environment = null)`
+    gains an optional trailing `$environment` (`production` | `sandbox`): the
+    APNs environment of the token, for direct-APNs apps. Omitted, the field
+    is not sent and the server assumes `production`; FCM apps ignore it.
+    Existing calls are unchanged.
+  - For a direct-APNs app, `$token` is the raw device token as hex (64 to
+    200 hex characters, any case) and `$platform` is `ios` or `macos`. A
+    token or platform the app's transport does not take throws a
+    `ValidationException` on that field.
 
 ### Fixed
 
-- `push()->register()` documentation: only FCM registration tokens are
-  accepted (on iOS too); a raw APNs device token never was.
+- `push()->register()` documentation: the default app and FCM apps only take
+  FCM registration tokens (on iOS too); a raw APNs device token is only
+  accepted by a direct-APNs push app.
 
 ## [2.9.0] - 2026-10-04
 
