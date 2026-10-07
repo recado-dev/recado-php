@@ -39,10 +39,18 @@ final readonly class NotificationsResource
      * `action_url`/`icon` override the template defaults. An unknown slug
      * throws a {@see ValidationException} with code `template_not_found`.
      *
+     * `app` (optional, requires `push` among `channels`) is the key of the
+     * push app the push goes to, for projects that deliver to several apps:
+     * with it only that app's devices are reached; without it the default
+     * app and every non-restricted app are — never a restricted one. An
+     * unknown or disabled key throws a {@see ValidationException} with code
+     * `push_app_not_found`.
+     *
      * @param  array<string, mixed>  $payload  `to`, then `title` + `body` or a
      *                                         `template` slug, plus optional
      *                                         `channels` (defaults to `['in_app']`),
-     *                                         `action_url`, `icon`, `variables`.
+     *                                         `action_url`, `icon`, `variables`,
+     *                                         `app`.
      */
     public function send(array $payload): NotificationResult
     {
@@ -73,7 +81,8 @@ final readonly class NotificationsResource
      * defaulting to `['in_app']` —, `action_url`, `icon`, `variables`;
      * an item's unknown template slug is a per-channel
      * `failed_precondition`/`template_not_found` outcome, never an
-     * exception); 1-100 items per request, rate
+     * exception — and so is an unknown `app` key, reported as
+     * `push_app_not_found`); 1-100 items per request, rate
      * limited at 10 requests/min per token. A single malformed item rejects
      * the WHOLE request with a {@see ValidationException}; runtime outcomes
      * are per item and per channel and never abort the batch, so unlike

@@ -392,8 +392,31 @@ echo $removed->removed;    // true, or false if the contact had no such token
 ```
 
 The `platform` is the native device platform: `ios` or `android`. This endpoint
-registers **native FCM device tokens only** — web push uses a separate VAPID
-subscription flow, so `web` is not accepted here (passing it yields a `422`).
+registers **FCM registration tokens only** (on iOS too — a raw APNs device token
+is not accepted) — web push uses a separate VAPID subscription flow, so `web` is
+not accepted here (passing it yields a `422`).
+
+**Several apps per project.** When a project delivers to more than one app (a
+public app and an admin app, say), pass the push app **key** as the optional
+last argument, and name the app when sending:
+
+```php
+$client->push()->register('jane@example.com', 'fcm-device-token', 'ios', 'admin');
+$client->push()->remove('jane@example.com', 'fcm-device-token', 'admin');
+
+$client->notifications()->send([
+    'to' => 'jane@example.com',
+    'title' => 'New report',
+    'body' => 'Needs review',
+    'channels' => ['push'],
+    'app' => 'admin', // only the admin app's devices
+]);
+```
+
+Without a key nothing changes: the device belongs to the project's default app.
+A send **without** `app` reaches the default app and every non-restricted app,
+never an app marked restricted in the dashboard. An unknown or disabled key
+throws a `ValidationException` with code `push_app_not_found`.
 
 Registering a token already owned by another contact in the project **moves** it
 to this contact; a contact is capped at **20 devices** (the oldest is evicted

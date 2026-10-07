@@ -8,6 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Push apps: several apps per project.** A project can now deliver push to
+  more than one app (a public app and an admin app, say), each with its own
+  credentials and devices.
+  - `push()->register($email, $token, $platform, ?string $app = null)` and
+    `push()->remove($email, $token, ?string $app = null)` take an optional
+    trailing push app **key**. Omitted, nothing changes: the device joins (or
+    is removed from) the project's default app and the request body is
+    exactly what it was. An unknown or disabled key throws a
+    `ValidationException` with code `push_app_not_found`.
+  - `notifications()->send()` and each `notifications()->batch()` item accept
+    `app` in their payload (it requires `push` among `channels`). With it,
+    only that app's devices are reached; without it, the default app and
+    every non-restricted app are — never an app marked restricted. On
+    `send()` an unknown key throws `ValidationException`
+    (`push_app_not_found`); in a batch it is a per-channel
+    `failed_precondition` / `push_app_not_found` outcome.
+  - The device cap is now 20 per contact **and app**.
+
+### Fixed
+
+- `push()->register()` documentation: only FCM registration tokens are
+  accepted (on iOS too); a raw APNs device token never was.
+
 ## [2.9.0] - 2026-10-04
 
 ### Changed

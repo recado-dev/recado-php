@@ -39,6 +39,46 @@ final class NotificationsTest extends TestCase
         $this->assertSame(['in_app'], $body['channels']);
     }
 
+    public function test_send_passes_the_push_app_through(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(202, [
+                'data' => ['messages' => [
+                    ['channel' => 'push', 'id' => 'uuid-0', 'status' => 'queued'],
+                ]],
+            ]),
+            $this->jsonResponse(422, [
+                'message' => 'The push app "ghost" does not exist or is disabled.',
+                'code' => 'push_app_not_found',
+            ]),
+        ], $history);
+
+        $result = $client->notifications()->send([
+            'to' => 'jane@example.com',
+            'title' => 'New report',
+            'body' => 'Needs review',
+            'channels' => ['push'],
+            'app' => 'admin',
+        ]);
+
+        $this->assertTrue($result->anyQueued());
+
+        $body = json_decode((string) $history[0]['request']->getBody(), true);
+        $this->assertSame('admin', $body['app']);
+        $this->assertSame(['push'], $body['channels']);
+
+        // An unknown key is a coded error, not a per-channel outcome.
+        try {
+            $client->notifications()->send([
+                'to' => 'jane@example.com', 'title' => 'x', 'body' => 'y', 'channels' => ['push'], 'app' => 'ghost',
+            ]);
+            $this->fail('Expected ValidationException');
+        } catch (ValidationException $e) {
+            $this->assertSame('push_app_not_found', $e->getErrorCode());
+        }
+    }
+
     public function test_send_passes_explicit_channels_through(): void
     {
         $history = [];
