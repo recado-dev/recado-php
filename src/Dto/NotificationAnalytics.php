@@ -14,6 +14,10 @@ namespace Recado\Sdk\Dto;
  * by channel: rows of `{date, api, automation, broadcast}`. It stays a raw
  * array on purpose — a new source would otherwise need an SDK release.
  *
+ * `apps` is the per-app push breakdown. It is null for a project without push
+ * apps (the key is simply absent from the response) and on a server that
+ * predates it.
+ *
  * Unlike delivery health this DOES work inside a sandbox: intercepted sends are
  * recorded, so it is how you read back a test run.
  */
@@ -28,6 +32,7 @@ final readonly class NotificationAnalytics
         public array $series,
         public array $channels,
         public PushDeviceRegistry $registry,
+        public ?PushAppAnalytics $apps = null,
     ) {}
 
     /**
@@ -64,6 +69,7 @@ final readonly class NotificationAnalytics
             registry: PushDeviceRegistry::fromArray(
                 is_array($data['registry'] ?? null) ? $data['registry'] : [],
             ),
+            apps: is_array($data['apps'] ?? null) ? PushAppAnalytics::fromArray($data['apps']) : null,
         );
     }
 

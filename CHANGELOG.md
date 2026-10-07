@@ -10,6 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Push analytics per app.** `notifications()->analytics()` gains
+  `NotificationAnalytics::$apps` (a `PushAppAnalytics`, **null for a project
+  without push apps** — the key is then absent from the response, which is
+  otherwise unchanged).
+  - `$apps->targets` is a list of `PushAppTargetStats`: the default app, each
+    push app (`key`, `name`, `transport`, `restricted`, `enabled`), web push,
+    and any deleted app that still has history in the window (`deleted`,
+    named by the key it had). Each carries `activeDevices`, `revokedDevices`,
+    `registeredInWindow`, `prunedInWindow`, a zero-filled `events` series and
+    `sends` — the stats of the messages that targeted the app, with the same
+    silent rule as the channel totals. Helpers: `app($key)`, `defaultApp()`,
+    `web()`.
+  - `$apps->untargeted` holds the stats of the sends that named no app. They
+    are never split across apps: such a send is one notification with one set
+    of opens and clicks. `sends` is therefore null on the default app and on
+    web push.
 - **Push apps: several apps per project.** A project can now deliver push to
   more than one app (a public app and an admin app, say), each with its own
   credentials and devices.

@@ -771,6 +771,12 @@ $limits = $client->delivery()->updateReputationLimits([
 $analytics = $client->notifications()->analytics();
 $analytics->channel('push')?->openRate; // null on a zero denominator
 $analytics->registry->activeTotal;
+// Per push app — null when the project has no push apps. A send that named
+// no app is one bucket (`untargeted`), never split across apps.
+$analytics->apps?->app('admin')?->sends?->openRate;
+$analytics->apps?->app('admin')?->activeDevices;
+$analytics->apps?->defaultApp()?->activeDevices;
+$analytics->apps?->untargeted->sent;
 
 // Events (the read side of track())
 foreach ($client->events()->cursor(['event' => 'order.completed']) as $occurrence) {
