@@ -25,6 +25,7 @@ final class NotificationAnalyticsTest extends TestCase
                         'by_source' => ['api' => 3600, 'automation' => 200, 'broadcast' => 0],
                         'delivered' => 3700, 'opened' => 910, 'clicked' => 240,
                         'delivery_rate' => 0.984, 'open_rate' => 0.2459, 'click_rate' => 0.0648,
+                        'silent' => 12,
                     ],
                     'in_app' => [
                         'total' => 0, 'queued' => 0, 'sent' => 0, 'failed' => 0,
@@ -52,6 +53,10 @@ final class NotificationAnalyticsTest extends TestCase
         $this->assertSame(3760, $push->sent);
         $this->assertSame(3600, $push->bySource['api']);
         $this->assertSame(0.984, $push->deliveryRate);
+        // Silent pushes are reported on their own; a payload from a server
+        // that predates the key reads as 0.
+        $this->assertSame(12, $push->silent);
+        $this->assertSame(0, $analytics->channel('in_app')?->silent);
 
         // A zero denominator stays null, never a fake 0.0 — the same rule as
         // campaign and broadcast stats.

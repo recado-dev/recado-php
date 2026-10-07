@@ -79,6 +79,88 @@ final class NotificationsTest extends TestCase
         }
     }
 
+    public function test_send_passes_the_push_object_through(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(202, [
+                'data' => ['messages' => [['channel' => 'push', 'id' => 'uuid-0', 'status' => 'queued']]],
+            ]),
+            $this->jsonResponse(202, [
+                'data' => ['messages' => [['channel' => 'push', 'id' => 'uuid-1', 'status' => 'queued']]],
+            ]),
+            $this->jsonResponse(422, [
+                'message' => 'A silent push cannot be combined with the "in_app" channel.',
+                'errors' => ['push' => ['A silent push cannot be combined with the "in_app" channel.']],
+            ]),
+        ], $history);
+
+        $push = [
+            'sound' => 'order.caf',
+            'badge' => 3,
+            'category' => 'ORDER_ACTIONS',
+            'thread_id' => 'orders',
+            'interruption_level' => 'time-sensitive',
+            'android_channel_id' => 'orders',
+            'data' => ['order_id' => 42, 'urgent' => true],
+        ];
+
+        $client->notifications()->send([
+            'to' => 'jane@example.com',
+            'title' => 'New order',
+            'body' => 'Needs review',
+            'channels' => ['push'],
+            'push' => $push,
+        ]);
+
+        $body = json_decode((string) $history[0]['request']->getBody(), true);
+        $this->assertSame($push, $body['push']);
+
+        // A silent push carries no title or body, on the push channel only.
+        $result = $client->notifications()->send([
+            'to' => 'jane@example.com',
+            'channels' => ['push'],
+            'push' => ['silent' => true, 'data' => ['refresh' => 'orders']],
+        ]);
+
+        $this->assertTrue($result->anyQueued());
+
+        $body = json_decode((string) $history[1]['request']->getBody(), true);
+        $this->assertSame(['silent' => true, 'data' => ['refresh' => 'orders']], $body['push']);
+        $this->assertSame(['push'], $body['channels']);
+        $this->assertArrayNotHasKey('title', $body);
+        $this->assertArrayNotHasKey('body', $body);
+
+        // An invalid object is a real validation error, not a channel outcome.
+        try {
+            $client->notifications()->send([
+                'to' => 'jane@example.com',
+                'push' => ['silent' => true],
+            ]);
+            $this->fail('Expected ValidationException');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('push', $e->errors());
+        }
+    }
+
+    public function test_batch_passes_the_push_object_per_item(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(202, ['data' => ['messages' => [], 'queued' => 2, 'failed' => 0]]),
+        ], $history);
+
+        $client->notifications()->batch([
+            ['to' => 'jane@example.com', 'title' => 'Hi', 'body' => 'There', 'channels' => ['push'], 'push' => ['badge' => 1]],
+            ['to' => 'joe@example.com', 'channels' => ['push'], 'push' => ['silent' => true]],
+        ]);
+
+        $body = json_decode((string) $history[0]['request']->getBody(), true);
+
+        $this->assertSame(['badge' => 1], $body['messages'][0]['push']);
+        $this->assertSame(['silent' => true], $body['messages'][1]['push']);
+    }
+
     public function test_send_passes_explicit_channels_through(): void
     {
         $history = [];

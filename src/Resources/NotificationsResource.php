@@ -46,11 +46,37 @@ final readonly class NotificationsResource
      * unknown or disabled key throws a {@see ValidationException} with code
      * `push_app_not_found`.
      *
+     * `push` (optional, requires `push` among `channels`) carries the
+     * push-only extras a native app needs; it is never part of the in-app
+     * notification of the same send. Every key is optional:
+     *
+     *  - `sound` (string, ≤ 100): a sound file bundled with the app;
+     *  - `badge` (int, 0..99999): the app icon badge, `0` clears it;
+     *  - `category` (string, ≤ 64): the id of a category the app registered;
+     *  - `thread_id` (string, ≤ 64): groups notifications together;
+     *  - `interruption_level`: `passive`, `active` or `time-sensitive`
+     *    (`critical` is not supported);
+     *  - `android_channel_id` (string, ≤ 100): the Android notification channel;
+     *  - `data` (array<string, scalar>): custom values for the app — a flat
+     *    map, at most 10 keys; string values may use `{{ placeholders }}`.
+     *    Reserved keys (`aps`, `message_uuid`, `action_url`, `icon`, `title`,
+     *    `body`, `from`, `message_type`, `notification`, `collapse_key`,
+     *    anything starting with `google` or `gcm`) are refused;
+     *  - `silent` (bool): a background push with no alert. `title`/`body`
+     *    become optional, `channels` must be exactly `['push']` (pass it
+     *    explicitly: this method defaults to in-app), and `sound`, `badge`,
+     *    `category` and `interruption_level` are not allowed with it. A
+     *    silent push counts toward the push quota, is never marketing and is
+     *    left out of the open and click rates. Apple throttles background
+     *    pushes to a few per hour: a hint to refresh, not a live channel.
+     *
+     * An invalid `push` object throws a {@see ValidationException}.
+     *
      * @param  array<string, mixed>  $payload  `to`, then `title` + `body` or a
      *                                         `template` slug, plus optional
      *                                         `channels` (defaults to `['in_app']`),
      *                                         `action_url`, `icon`, `variables`,
-     *                                         `app`.
+     *                                         `app`, `push`.
      */
     public function send(array $payload): NotificationResult
     {
@@ -78,7 +104,8 @@ final readonly class NotificationsResource
      *
      * Each item carries the same fields as {@see send()} (`to`, then
      * `title` + `body` or a `template` slug, optional `channels` —
-     * defaulting to `['in_app']` —, `action_url`, `icon`, `variables`;
+     * defaulting to `['in_app']` —, `action_url`, `icon`, `variables`,
+     * `app` and the `push` extras, silent pushes included;
      * an item's unknown template slug is a per-channel
      * `failed_precondition`/`template_not_found` outcome, never an
      * exception — and so is an unknown `app` key, reported as

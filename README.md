@@ -418,6 +418,49 @@ $client->notifications()->send([
 ]);
 ```
 
+#### Sound, badge, custom data and silent pushes
+
+The optional `push` array carries what a native app needs on top of the title
+and body. It requires `push` among `channels` and never reaches the in-app
+notification of the same send:
+
+```php
+$client->notifications()->send([
+    'to' => 'jane@example.com',
+    'title' => 'New order',
+    'body' => 'Order {{ order_id }} needs review',
+    'channels' => ['push'],
+    'app' => 'admin',
+    'variables' => ['order_id' => 'ord_8842'],
+    'push' => [
+        'sound' => 'order.caf',
+        'badge' => 3,
+        'category' => 'ORDER_ACTIONS',          // a category your app registered
+        'thread_id' => 'orders',
+        'interruption_level' => 'time-sensitive', // passive | active | time-sensitive
+        'android_channel_id' => 'orders',
+        'data' => ['order_id' => '{{ order_id }}', 'priority' => 2],
+    ],
+]);
+
+// A silent (background) push: no title, no body, push only.
+$client->notifications()->send([
+    'to' => 'jane@example.com',
+    'channels' => ['push'], // required: send() defaults to in-app
+    'app' => 'admin',
+    'push' => ['silent' => true, 'data' => ['refresh' => 'orders']],
+]);
+```
+
+`data` is a flat map (at most 10 keys); a few names are reserved (`aps`,
+`message_uuid`, `action_url`, `icon`, `title`, `body`, and the ones Firebase
+reserves). A silent push cannot be combined with the in-app channel nor with
+`sound`, `badge`, `category` or `interruption_level`; it counts toward the
+push quota and is left out of the open and click rates
+(`NotificationChannelStats::$silent` reports how many there were). Apple
+throttles background pushes to a few per hour — use them as a hint to
+refresh, not as a live channel.
+
 Without a key nothing changes: the device belongs to the project's default app.
 A send **without** `app` reaches the default app and every non-restricted app,
 never an app marked restricted in the dashboard. An unknown or disabled key

@@ -40,6 +40,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     token or platform the app's transport does not take throws a
     `ValidationException` on that field.
 
+- **Rich push payload and silent pushes.** `notifications()->send()` and each
+  `notifications()->batch()` item accept an optional `push` array (it requires
+  `push` among `channels` and is never part of the in-app notification):
+  `sound`, `badge`, `category`, `thread_id`, `interruption_level`
+  (`passive` | `active` | `time-sensitive`), `android_channel_id`, `data`
+  (a flat map of custom values for the app) and `silent`. Every key is
+  documented on `send()`.
+  - `'push' => ['silent' => true]` sends a background push with no alert:
+    `title` and `body` become optional, and `channels` must be exactly
+    `['push']` — pass it explicitly, since `send()` defaults to in-app.
+  - An invalid object (an unknown key, a reserved `data` key, `critical`,
+    `silent` next to `in_app` or to `sound`/`badge`/`category`/
+    `interruption_level`) throws a `ValidationException`.
+  - `NotificationChannelStats::$silent`: the silent pushes of the analytics
+    window. They count in the volumes but are left out of `openRate` and
+    `clickRate`. Defaults to `0` against a server that does not report it.
+  - Nothing changes for a payload without `push`.
+
 ### Fixed
 
 - `push()->register()` documentation: the default app and FCM apps only take

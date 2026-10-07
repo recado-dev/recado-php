@@ -10,6 +10,10 @@ namespace Recado\Sdk\Dto;
  * `deliveryRate` is over `sent`; `openRate` and `clickRate` are over
  * `delivered`. Every rate is null on a zero denominator, never a fake 0.0.
  *
+ * `silent` counts the silent (background) pushes of the window. They are
+ * part of every volume above but are left out of both sides of `openRate`
+ * and `clickRate`: nothing is shown, so nothing can be opened or tapped.
+ *
  * Honest scope note: `delivered` means the channel ACCEPTED the notification
  * (for push, the push service did). On-screen display confirmation is out of
  * scope.
@@ -31,6 +35,7 @@ final readonly class NotificationChannelStats
         public ?float $deliveryRate,
         public ?float $openRate,
         public ?float $clickRate,
+        public int $silent = 0,
     ) {}
 
     /**
@@ -60,6 +65,7 @@ final readonly class NotificationChannelStats
             deliveryRate: isset($data['delivery_rate']) ? (float) $data['delivery_rate'] : null,
             openRate: isset($data['open_rate']) ? (float) $data['open_rate'] : null,
             clickRate: isset($data['click_rate']) ? (float) $data['click_rate'] : null,
+            silent: (int) ($data['silent'] ?? 0),
         );
     }
 }
