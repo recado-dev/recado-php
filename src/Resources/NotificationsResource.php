@@ -67,10 +67,15 @@ final readonly class NotificationsResource
      *    explicitly: this method defaults to in-app), and `sound`, `badge`,
      *    `category` and `interruption_level` are not allowed with it. A
      *    silent push counts toward the push quota, is never marketing and is
-     *    left out of the open and click rates. Apple throttles background
+     *    left out of the open and click rates. It reaches native apps only
+     *    (APNs and FCM), never a browser. Apple throttles background
      *    pushes to a few per hour: a hint to refresh, not a live channel.
      *
-     * An invalid `push` object throws a {@see ValidationException}.
+     * An invalid `push` object throws a {@see ValidationException}. So does
+     * a send whose push payload would exceed 3500 bytes (title, body,
+     * action_url, icon and the `push` object as the push services receive
+     * them, counted in bytes), with the code `push_payload_too_large`; a
+     * send without a `push` object is never measured.
      *
      * @param  array<string, mixed>  $payload  `to`, then `title` + `body` or a
      *                                         `template` slug, plus optional

@@ -53,6 +53,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - An invalid object (an unknown key, a reserved `data` key, `critical`,
     `silent` next to `in_app` or to `sound`/`badge`/`category`/
     `interruption_level`) throws a `ValidationException`.
+  - A silent push reaches native apps only (APNs and FCM); web push
+    subscriptions are skipped, and a contact with nothing but browsers is
+    reported as `blocked` / `recipient_blocked`.
+  - A send carrying `push` is rejected when its payload would exceed 3500
+    bytes: `ValidationException` with code `push_payload_too_large`. A send
+    without `push` is never measured.
   - `NotificationChannelStats::$silent`: the silent pushes of the analytics
     window. They count in the volumes but are left out of `openRate` and
     `clickRate`. Defaults to `0` against a server that does not report it.

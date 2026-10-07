@@ -455,11 +455,16 @@ $client->notifications()->send([
 `data` is a flat map (at most 10 keys); a few names are reserved (`aps`,
 `message_uuid`, `action_url`, `icon`, `title`, `body`, and the ones Firebase
 reserves). A silent push cannot be combined with the in-app channel nor with
-`sound`, `badge`, `category` or `interruption_level`; it counts toward the
+`sound`, `badge`, `category` or `interruption_level`; it reaches native apps
+only (never a browser), counts toward the
 push quota and is left out of the open and click rates
 (`NotificationChannelStats::$silent` reports how many there were). Apple
 throttles background pushes to a few per hour — use them as a hint to
 refresh, not as a live channel.
+
+A send that carries `push` is rejected when its payload would exceed 3500
+bytes (`ValidationException`, code `push_payload_too_large`); a send without
+`push` is never measured.
 
 Without a key nothing changes: the device belongs to the project's default app.
 A send **without** `app` reaches the default app and every non-restricted app,
