@@ -15,6 +15,13 @@ namespace Recado\Sdk\Dto;
  * `channels` comes back normalized by the API: unknown values are dropped and
  * the order is canonical (`in_app`, `push`). `stats` is populated by the detail
  * endpoint and by a list requested with `include=stats`; it is null otherwise.
+ *
+ * `app` is the key of the push app the push part targets (null = untargeted:
+ * the default app and every non-restricted app). It is kept after the app is
+ * deleted — such a broadcast is refused at send time with
+ * `push_app_not_found`. `push` is the object of native push extras (sound,
+ * badge, category, thread_id, interruption_level, android_channel_id, data),
+ * null when none are set. Both are null against a server that predates them.
  */
 final readonly class Broadcast
 {
@@ -22,6 +29,7 @@ final readonly class Broadcast
      * @param  array<int, string>  $channels
      * @param  array<int, int>  $lists
      * @param  array<int, int>  $segments
+     * @param  array<string, mixed>|null  $push
      */
     public function __construct(
         public ?int $id,
@@ -43,6 +51,8 @@ final readonly class Broadcast
         public ?string $finishedAt,
         public ?string $createdAt,
         public ?BroadcastStats $stats = null,
+        public ?string $app = null,
+        public ?array $push = null,
     ) {}
 
     /**
@@ -70,6 +80,8 @@ final readonly class Broadcast
             finishedAt: isset($data['finished_at']) ? (string) $data['finished_at'] : null,
             createdAt: isset($data['created_at']) ? (string) $data['created_at'] : null,
             stats: is_array($data['stats'] ?? null) ? BroadcastStats::fromArray($data['stats']) : null,
+            app: isset($data['app']) ? (string) $data['app'] : null,
+            push: is_array($data['push'] ?? null) ? $data['push'] : null,
         );
     }
 

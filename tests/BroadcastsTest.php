@@ -204,6 +204,69 @@ final class BroadcastsTest extends TestCase
         $this->assertStringContainsString('segments%5B0%5D=7', $query);
     }
 
+    public function test_a_broadcast_targets_a_push_app_and_carries_push_extras(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(201, ['data' => $this->broadcast([
+                'channels' => ['push'],
+                'app' => 'admin',
+                'push' => ['sound' => 'alarm.caf', 'badge' => 2, 'data' => ['screen' => 'incidents']],
+            ])]),
+            $this->jsonResponse(200, ['data' => $this->broadcast(['channels' => ['push'], 'app' => null, 'push' => null])]),
+            $this->jsonResponse(200, ['data' => [
+                'counts' => ['in_app' => 1840, 'push' => 12],
+                'recipients_total' => 1852,
+            ]]),
+        ], $history);
+
+        $payload = [
+            'name' => 'Admin alert',
+            'channels' => ['push'],
+            'app' => 'admin',
+            'push' => ['sound' => 'alarm.caf', 'badge' => 2, 'data' => ['screen' => 'incidents']],
+        ];
+
+        $broadcast = $client->broadcasts()->create($payload);
+
+        $this->assertSame('admin', $broadcast->app);
+        $this->assertSame(['sound' => 'alarm.caf', 'badge' => 2, 'data' => ['screen' => 'incidents']], $broadcast->push);
+        // Sent verbatim.
+        $this->assertSame($payload, json_decode((string) $history[0]['request']->getBody(), true));
+
+        // `null` clears both; the SDK must send the nulls, not drop them.
+        $cleared = $client->broadcasts()->update(12, ['app' => null, 'push' => null]);
+
+        $this->assertNull($cleared->app);
+        $this->assertNull($cleared->push);
+        $this->assertSame(['app' => null, 'push' => null], json_decode((string) $history[1]['request']->getBody(), true));
+
+        // The count can be narrowed to the targeted app.
+        $counts = $client->broadcasts()->recipientCount([3], [], 'admin');
+
+        $this->assertSame(12, $counts->for('push'));
+        $this->assertStringContainsString('app=admin', $history[2]['request']->getUri()->getQuery());
+    }
+
+    public function test_a_broadcast_from_a_server_without_push_apps_reads_as_untargeted(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(200, ['data' => $this->broadcast()]),
+            $this->jsonResponse(200, ['data' => ['counts' => ['in_app' => 1, 'push' => 1], 'recipients_total' => 2]]),
+        ], $history);
+
+        $broadcast = $client->broadcasts()->get(12);
+
+        $this->assertNull($broadcast->app);
+        $this->assertNull($broadcast->push);
+
+        // Without an app the query is exactly what it always was.
+        $client->broadcasts()->recipientCount([3], [7]);
+
+        $this->assertStringNotContainsString('app=', $history[1]['request']->getUri()->getQuery());
+    }
+
     public function test_a_refused_send_keeps_its_machine_code(): void
     {
         $history = [];

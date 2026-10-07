@@ -136,6 +136,47 @@ final class NotificationTemplatesTest extends TestCase
         $this->assertSame('/api/v1/notification-templates/order-shipped/variants/ES-mx', $request->getUri()->getPath());
     }
 
+    public function test_a_template_and_its_variants_carry_the_push_object(): void
+    {
+        $history = [];
+        $client = $this->clientWithResponses([
+            $this->jsonResponse(201, ['data' => $this->template([
+                'push' => ['sound' => 'ship.caf', 'thread_id' => 'orders'],
+                'variants' => [[
+                    'locale' => 'es', 'title' => 'En camino', 'body' => 'Tu pedido salió.',
+                    'action_url' => null, 'icon' => null, 'push' => ['sound' => 'envio.caf'],
+                ]],
+            ])]),
+            $this->jsonResponse(200, ['data' => [
+                'locale' => 'es', 'title' => 'En camino', 'body' => 'Tu pedido salió.',
+                'action_url' => null, 'icon' => null, 'push' => null,
+            ]]),
+        ], $history);
+
+        $template = $client->notificationTemplates()->create([
+            'name' => 'Order shipped',
+            'slug' => 'order-shipped',
+            'title' => 'On its way',
+            'body' => 'Your order left the warehouse.',
+            'push' => ['sound' => 'ship.caf', 'thread_id' => 'orders'],
+        ]);
+
+        $this->assertSame(['sound' => 'ship.caf', 'thread_id' => 'orders'], $template->push);
+        $this->assertSame(['sound' => 'envio.caf'], $template->variants[0]->push);
+        $this->assertSame(
+            ['sound' => 'ship.caf', 'thread_id' => 'orders'],
+            json_decode((string) $history[0]['request']->getBody(), true)['push'],
+        );
+
+        // A variant is a full alternative: saved without `push`, it has none.
+        $variant = $client->notificationTemplates()->putVariant('order-shipped', 'es', [
+            'title' => 'En camino',
+            'body' => 'Tu pedido salió.',
+        ]);
+
+        $this->assertNull($variant->push);
+    }
+
     public function test_delete_variant_and_delete_template_issue_deletes(): void
     {
         $history = [];

@@ -63,6 +63,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     window. They count in the volumes but are left out of `openRate` and
     `clickRate`. Defaults to `0` against a server that does not report it.
   - Nothing changes for a payload without `push`.
+- **Push app targeting and push extras on broadcasts, automation steps and
+  notification templates.**
+  - `broadcasts()->create()` / `update()` accept `app` (a push app key) and
+    `push` (the same array of native extras as `notifications()->send()`,
+    minus `silent`, which a broadcast refuses) in their payload; both require
+    `push` among `channels`. `Broadcast::$app` and `Broadcast::$push` expose
+    them (null on an untargeted, plain broadcast and against an older server).
+  - `broadcasts()->recipientCount($lists, $segments, ?string $app = null)`
+    takes an optional trailing push app key that narrows the push count to
+    that app. Omitted, the request is exactly what it was.
+  - A broadcast whose target app was deleted or disabled is refused by
+    `send()` / `schedule()` / `testSend()` with a `ValidationException`
+    (`push_app_not_found`); it never falls back to an untargeted send.
+  - `notificationTemplates()->create()` / `update()` / `putVariant()` accept
+    `push`; `NotificationTemplate::$push` and
+    `NotificationTemplateVariant::$push` expose it. A `push` array on
+    `notifications()->send()` replaces the template's as a whole.
+  - A broadcast or notification template (or variant) whose content plus
+    `push` array exceeds the push payload size limit throws a
+    `ValidationException` with code `push_payload_too_large`, like
+    `notifications()->send()`. Without a `push` array nothing is measured.
+  - The `send_notification` automation step config accepts `app` and (inline
+    shape) `push`. The SDK does not model automations, so there is nothing to
+    change there.
 
 ### Fixed
 

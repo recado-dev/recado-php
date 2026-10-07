@@ -73,9 +73,16 @@ final readonly class NotificationTemplatesResource
      * your own site, so those would be stored XSS). `icon` must be an absolute
      * http(s) URL — it is fetched as an image.
      *
+     * `push` (optional) is the array of native push extras
+     * `notifications()->send()` documents (`sound`, `badge`, `category`,
+     * `thread_id`, `interruption_level`, `android_channel_id`, `data`,
+     * `silent`). The push part of a send naming the template uses it; a `push`
+     * array on the send itself REPLACES it as a whole. A template carrying
+     * `silent` cannot be used by a marketing automation.
+     *
      * @param  array<string, mixed>  $payload  name, slug, title (≤200),
      *                                         body (≤2000), optional action_url,
-     *                                         icon.
+     *                                         icon, push.
      */
     public function create(array $payload): NotificationTemplate
     {
@@ -87,11 +94,11 @@ final readonly class NotificationTemplatesResource
     /**
      * Partially update a template (PATCH /notification-templates/{slug}).
      *
-     * Send `null` to clear `action_url`/`icon`. Changing the slug re-checks
-     * per-project uniqueness.
+     * Send `null` to clear `action_url`/`icon`/`push`. Changing the slug
+     * re-checks per-project uniqueness.
      *
      * @param  array<string, mixed>  $payload  Any of name, slug, title, body,
-     *                                         action_url, icon.
+     *                                         action_url, icon, push.
      */
     public function update(string $slug, array $payload): NotificationTemplate
     {
@@ -121,7 +128,10 @@ final readonly class NotificationTemplatesResource
      * target rather than the base template's one. The locale tag is validated
      * and normalized server-side (`ES-mx` → `es-MX`).
      *
-     * @param  array<string, mixed>  $payload  title, body, optional action_url, icon.
+     * The same holds for `push`: a variant saved without it sends no native
+     * extras in that locale, whatever the base template carries.
+     *
+     * @param  array<string, mixed>  $payload  title, body, optional action_url, icon, push.
      */
     public function putVariant(string $slug, string $locale, array $payload): NotificationTemplateVariant
     {

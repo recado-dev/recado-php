@@ -8,12 +8,15 @@ namespace Recado\Sdk\Dto;
  * A per-locale notification-template variant.
  *
  * A variant is a FULL alternative to the base content, not a merge: its empty
- * `actionUrl`/`icon` win over the base values. At send time the recipient's
+ * `actionUrl`/`icon`/`push` win over the base values. At send time the recipient's
  * locale resolves it (exact tag, then language prefix), falling back to the
  * project default locale and finally to the base template.
  */
 final readonly class NotificationTemplateVariant
 {
+    /**
+     * @param  array<string, mixed>|null  $push
+     */
     public function __construct(
         public ?string $locale,
         public ?string $title,
@@ -22,6 +25,7 @@ final readonly class NotificationTemplateVariant
         public ?string $icon,
         public ?string $createdAt,
         public ?string $updatedAt,
+        public ?array $push = null,
     ) {}
 
     /**
@@ -37,6 +41,7 @@ final readonly class NotificationTemplateVariant
             icon: isset($data['icon']) ? (string) $data['icon'] : null,
             createdAt: isset($data['created_at']) ? (string) $data['created_at'] : null,
             updatedAt: isset($data['updated_at']) ? (string) $data['updated_at'] : null,
+            push: is_array($data['push'] ?? null) ? $data['push'] : null,
         );
     }
 }

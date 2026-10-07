@@ -1076,6 +1076,35 @@ $client->broadcasts()->cancel($broadcast->id);     // ends `cancelled`, not draf
 $client->broadcasts()->get($broadcast->id)->stats?->openRate; // null on a zero denominator
 ```
 
+**One push app, and push extras.** A project can hold several push apps. Add
+`app` (a push app key) to the payload and the push part of the broadcast
+reaches only that app's devices; without it, it reaches the default app and
+every non-restricted app, never one marked restricted. `push` carries the same
+native extras as `notifications()->send()`, except `silent` — a broadcast is
+always marketing and a silent push never is. Both require `push` among
+`channels`:
+
+```php
+$counts = $client->broadcasts()->recipientCount(lists: [3], app: 'admin');
+
+$broadcast = $client->broadcasts()->create([
+    'name' => 'Admin alert',
+    'title' => 'Heads up',
+    'body' => 'An incident needs you.',
+    'channels' => ['push'],
+    'lists' => [3],
+    'app' => 'admin',
+    'push' => ['sound' => 'alarm.caf', 'interruption_level' => 'time-sensitive'],
+]);
+
+echo $broadcast->app; // "admin"
+```
+
+If that app is later deleted or disabled, `send()`, `schedule()` and
+`testSend()` throw a `ValidationException` with code `push_app_not_found` —
+the broadcast never falls back to an untargeted send.
+
+
 Failures keep their machine codes: `not_sendable`, `missing_content`,
 `no_channels`, `no_recipients`, `push_not_entitled`, `push_not_configured`,
 `quota_exceeded`, `broadcast_not_editable`, `broadcast_not_scheduled`,

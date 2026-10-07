@@ -8,13 +8,18 @@ namespace Recado\Sdk\Dto;
  * A notification template: reusable in-app/push content, addressed by `slug`
  * — the identifier `notifications()->send()` accepts as `template`.
  *
- * The compact listing form omits `body`, `actionUrl`, `icon` and `variants`;
- * the full form (GET/POST/PATCH single) populates them.
+ * The compact listing form omits `body`, `actionUrl`, `icon`, `push` and
+ * `variants`; the full form (GET/POST/PATCH single) populates them.
+ *
+ * `push` is the optional object of native push extras (sound, badge,
+ * category, thread_id, interruption_level, android_channel_id, data, silent)
+ * the push part of a send uses; null when the template carries none.
  */
 final readonly class NotificationTemplate
 {
     /**
      * @param  array<int, NotificationTemplateVariant>  $variants
+     * @param  array<string, mixed>|null  $push
      */
     public function __construct(
         public ?string $slug,
@@ -26,6 +31,7 @@ final readonly class NotificationTemplate
         public array $variants,
         public ?string $createdAt,
         public ?string $updatedAt,
+        public ?array $push = null,
     ) {}
 
     /**
@@ -51,6 +57,7 @@ final readonly class NotificationTemplate
             variants: $variants,
             createdAt: isset($data['created_at']) ? (string) $data['created_at'] : null,
             updatedAt: isset($data['updated_at']) ? (string) $data['updated_at'] : null,
+            push: is_array($data['push'] ?? null) ? $data['push'] : null,
         );
     }
 }

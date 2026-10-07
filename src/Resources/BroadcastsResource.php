@@ -88,9 +88,19 @@ final readonly class BroadcastsResource
      * URL or a custom-scheme deep link (`myapp://home`), never a
      * script-executing scheme.
      *
+     * `app` (optional) is the key of the push app the push part goes to: only
+     * that app's devices are reached. Without it the push part reaches the
+     * default app and every non-restricted app, never a restricted one. `push`
+     * (optional) is the array of native push extras `notifications()->send()`
+     * documents — `sound`, `badge`, `category`, `thread_id`,
+     * `interruption_level`, `android_channel_id`, `data` — except `silent`,
+     * which a broadcast refuses (a broadcast is always marketing, a silent push
+     * never is). Both require `push` among `channels`. An unknown or disabled
+     * app key throws a ValidationException with code `push_app_not_found`.
+     *
      * @param  array<string, mixed>  $payload  name (required), title, body,
      *                                         action_url, icon, channels, lists,
-     *                                         segments.
+     *                                         segments, app, push.
      */
     public function create(array $payload): Broadcast
     {
@@ -105,6 +115,12 @@ final readonly class BroadcastsResource
      * Only drafts are editable (`422` + `broadcast_not_editable` otherwise —
      * unschedule a scheduled broadcast first). Targeting is only touched when
      * the `lists`/`segments` key is present; pass `[]` to clear it.
+     *
+     * `app` and `push` follow the same rule: omitted they are left untouched,
+     * `null` clears them. They are checked against the broadcast as it will be
+     * stored, so removing `push` from the channels of a targeted broadcast
+     * throws a ValidationException (`push_app_requires_push` /
+     * `push_options_require_push`) unless the same call clears them.
      *
      * @param  array<string, mixed>  $payload
      */
@@ -230,10 +246,16 @@ final readonly class BroadcastsResource
      * At least one of lists/segments is required. Ids of another project are a
      * `422` + `list_not_found` / `segment_not_found`.
      *
+     * `$app` (a push app key) narrows the PUSH count to the contacts with a
+     * device in that app — what a broadcast targeting it would reach. Omitted,
+     * the parameter is not sent and the push count is the untargeted audience
+     * (the default app and every non-restricted app). An unknown or disabled
+     * key throws a ValidationException with code `push_app_not_found`.
+     *
      * @param  array<int, int>  $lists
      * @param  array<int, int>  $segments
      */
-    public function recipientCount(array $lists = [], array $segments = []): BroadcastRecipientCounts
+    public function recipientCount(array $lists = [], array $segments = [], ?string $app = null): BroadcastRecipientCounts
     {
         $query = [];
 
@@ -243,6 +265,10 @@ final readonly class BroadcastsResource
 
         if ($segments !== []) {
             $query['segments'] = array_values($segments);
+        }
+
+        if ($app !== null) {
+            $query['app'] = $app;
         }
 
         $response = $this->http->get('broadcasts/recipient-count', ['query' => $query]);
