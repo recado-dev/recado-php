@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Recado\Sdk\Tests;
 
-use Recado\Sdk\Exception\ValidationException;
+use Recado\Sdk\Exception\NotFoundException;
 
 /**
  * GET /delivery/health — the machine-readable twin of the Delivery page.
@@ -93,11 +93,16 @@ final class DeliveryHealthTest extends TestCase
         $this->assertNull($degraded->max24h);
     }
 
+    /**
+     * The API answers a sandbox credential with a uniform 404
+     * `not_available_in_sandbox` (the surface does not exist for it); a
+     * caller branches on the code, never on the status.
+     */
     public function test_a_sandbox_token_is_refused_with_its_own_code(): void
     {
         $history = [];
         $client = $this->clientWithResponses([
-            $this->jsonResponse(422, [
+            $this->jsonResponse(404, [
                 'message' => 'Sender health is not available in a sandbox.',
                 'code' => 'not_available_in_sandbox',
             ]),
@@ -105,9 +110,10 @@ final class DeliveryHealthTest extends TestCase
 
         try {
             $client->delivery()->health();
-            $this->fail('Expected a ValidationException.');
-        } catch (ValidationException $e) {
-            $this->assertSame('not_available_in_sandbox', $e->getErrorCode());
+            $this->fail('Expected a NotFoundException.');
+        } catch (NotFoundException $e) {
+            $this->assertTrue($e->isNotAvailableInSandbox());
+            $this->assertSame(404, $e->getStatus());
         }
     }
 
