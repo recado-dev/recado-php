@@ -35,6 +35,15 @@ namespace Recado\Sdk\Dto;
  * row has no translations to show either way. Each A/B variant carries its own
  * under `$abTest->variants[*]->localeVariants`: the API returns those under
  * `locales.variants[]`, and this DTO pairs them back onto the variant by id.
+ *
+ * `failureReason` / `failureMessage` say why a `failed` campaign failed: the
+ * machine-readable code (the `campaign.failed` webhook `data.code` —
+ * `no_recipients`, `dispatch_failed`, `no_messages_dispatched` or a
+ * pre-flight refusal such as `quota_exceeded`; treat an unknown code as a
+ * generic failure) and its localized explanation. Both are null unless the
+ * status is `failed`. `no_recipients` is not an error in the send: a
+ * scheduled campaign came due with an empty audience, so nothing was sent
+ * ({@see Campaign::failedWithoutRecipients()}).
  */
 final readonly class Campaign
 {
@@ -66,7 +75,18 @@ final readonly class Campaign
         public array $localeVariants = [],
         public ?int $categoryTagId = null,
         public ?CampaignProgress $progress = null,
+        public ?string $failureReason = null,
+        public ?string $failureMessage = null,
     ) {}
+
+    /**
+     * Whether the campaign is `failed` only because its audience was empty
+     * when it came due: nothing was sent because there was nobody to send to.
+     */
+    public function failedWithoutRecipients(): bool
+    {
+        return $this->failureReason === 'no_recipients';
+    }
 
     /**
      * @param  array<string, mixed>  $data
@@ -127,6 +147,8 @@ final readonly class Campaign
             localeVariants: CampaignLocaleVariant::listFrom($data['locale_variants'] ?? null),
             categoryTagId: isset($data['category_tag_id']) ? (int) $data['category_tag_id'] : null,
             progress: is_array($data['progress'] ?? null) ? CampaignProgress::fromArray($data['progress']) : null,
+            failureReason: isset($data['failure_reason']) ? (string) $data['failure_reason'] : null,
+            failureMessage: isset($data['failure_message']) ? (string) $data['failure_message'] : null,
         );
     }
 

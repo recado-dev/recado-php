@@ -689,6 +689,12 @@ $campaign = $client->campaigns()->get(7);
 // that got no message once dispatch finished (null until then).
 $campaign->progress?->pending;
 $campaign->progress?->skipped;
+// Recipients a dispatch that was cut short (failed / cancelled) never reached.
+$campaign->progress?->unreached;
+// Why a `failed` campaign failed (null otherwise): machine code + explanation.
+$campaign->failureReason;            // 'dispatch_failed', 'no_recipients', ...
+$campaign->failureMessage;
+$campaign->failedWithoutRecipients(); // true = empty audience, nothing to send
 // $campaign->stats is a populated CampaignStats on get() (and on
 // list(['include' => 'stats'])):
 echo $campaign->stats->openRate ?? 0; // rates are null when undefined

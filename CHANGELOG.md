@@ -8,6 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Why a campaign failed.** `Campaign::$failureReason` (the machine-readable
+  code the `campaign.failed` webhook sends as `data.code`: `no_recipients`,
+  `dispatch_failed`, `no_messages_dispatched` or a pre-flight refusal such as
+  `quota_exceeded`) and `Campaign::$failureMessage` (its localized
+  explanation), on every campaign representation, listing included. Both are
+  null unless the status is `failed`.
+  `Campaign::failedWithoutRecipients()` tells the one case that is not an
+  error in the send: a scheduled campaign that came due with an empty
+  audience.
+- **`CampaignProgress::$unreached`**: recipients the dispatch never got to
+  because it was cut short (a campaign that failed or was cancelled before
+  dispatch finished). They are no longer reported as `skipped`, which stays
+  null for such a campaign — `skipped` only ever counts recipients a finished
+  dispatch decided not to email. 0 in every other case.
+
 ## [2.10.0] - 2026-10-08
 
 ### Added
