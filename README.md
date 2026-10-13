@@ -955,7 +955,11 @@ tag (`es-MX`) and then as its language prefix (`es`); nothing matches → the
 campaign base, byte-identical to an untranslated campaign.
 
 Both `preview()` and `testSend()` take a `locale`, rendering exactly what a
-recipient in that language would receive:
+recipient in that language would receive — including the shell chrome around
+the campaign ("View in browser", "Unsubscribe", "Manage preferences"), which
+is always written in the recipient's language (`en`, `es`, `de`, `fr`, `it`,
+`pt`; the project's default otherwise). Given a `contactEmail` and no
+`locale`, the contact's own locale is used:
 
 ```php
 $client->campaigns()->preview($campaign->id, locale: 'es');

@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Campaign shell chrome in the recipient's language** (API behaviour, no
+  SDK signature change). "View in browser", "Sent by", "Unsubscribe" and
+  "Manage preferences" — and the document's `lang` — now follow each
+  recipient's locale (`en`, `es`, `de`, `fr`, `it`, `pt`; the project's
+  default otherwise) instead of the project's for everyone.
+  `campaigns()->preview()` and `campaigns()->testSend()` with a
+  `contactEmail` and no `locale` now render in that contact's language
+  (translation and chrome), and a `locale` without a translation renders the
+  base body in that language's chrome.
+
 ### Added
 
 - **Why a campaign failed.** `Campaign::$failureReason` (the machine-readable

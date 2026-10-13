@@ -335,14 +335,20 @@ final readonly class CampaignsResource
      * Side-effect free and available in any status: no message row, no event,
      * no counter change, no mail.
      *
-     * @param  string|null  $contactEmail  A contact of this project whose data feeds
-     *                                     the `{{ contact.* }}` placeholders;
-     *                                     omitted → neutral sample data.
+     * @param  string|null  $contactEmail  A contact of this project: rendered as
+     *                                     that contact receives it — their data
+     *                                     in the `{{ contact.* }}` placeholders
+     *                                     and, unless `$locale` is given, the
+     *                                     translation and shell language of
+     *                                     their locale; omitted → neutral
+     *                                     sample data.
      * @param  int|null  $variant  An A/B variant id of this campaign.
      * @param  string|null  $locale  Render the translation a recipient in that
      *                               language would receive; combined with
      *                               `$variant`, that variant's translation. No
-     *                               translation for it → the campaign base.
+     *                               translation for it → the campaign base,
+     *                               still wrapped in that language's shell
+     *                               chrome (view in browser, unsubscribe).
      */
     public function preview(int $id, ?string $contactEmail = null, ?int $variant = null, ?string $locale = null): CampaignPreview
     {
